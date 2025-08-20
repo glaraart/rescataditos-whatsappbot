@@ -1,0 +1,9 @@
+# Environments
+.env
+
+# Credentials y secrets
+*.json
+!cloudbuild.yaml
+
+# Logs
+*.log
