@@ -4,13 +4,14 @@ import logging
 from typing import Dict, Any, Optional
 import openai
 from app.models.whatsapp import AIAnalysis
-
+from dotenv import load_dotenv
 logger = logging.getLogger(__name__)
-
+load_dotenv()
 class AIService:
     """Servicio para análisis de IA usando OpenAI"""
     
     def __init__(self):
+        
         self.api_key = os.getenv("OPENAI_API_KEY")
         if not self.api_key:
             raise ValueError("OPENAI_API_KEY no configurada")

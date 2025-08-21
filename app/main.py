@@ -53,8 +53,8 @@ app = FastAPI(
 )
 
 # Inicializar handler de mensajes (maneja sus propias dependencias y respuestas)
-message_handler = MessageHandler()
-whatsapp_service = WhatsAppService()
+#message_handler = MessageHandler()
+#whatsapp_service = WhatsAppService()
 
 # ===== WEBHOOK WHATSAPP =====
 
@@ -104,8 +104,8 @@ async def whatsapp_webhook(request: Request):
                 
                 for message_data in messages:
                     # Procesar mensaje en paralelo (no bloquea otros mensajes)
-                    asyncio.create_task(process_single_message(message_data, value))
-        
+                    #asyncio.create_task(process_single_message(message_data, value))
+                    print(message_data)
         return {"status": "received"}
         
     except json.JSONDecodeError:
@@ -117,35 +117,35 @@ async def whatsapp_webhook(request: Request):
 
 # ===== PROCESAMIENTO DE MENSAJES =====
 
-async def process_single_message(message_data: dict, webhook_value: dict):
-    """Procesa un solo mensaje de WhatsApp de forma asíncrona"""
-    try:
-        # Extraer información básica del webhook
-        message = extract_message_info(message_data, webhook_value)
-        
-        logger.info(f"Procesando mensaje de {message.from_number}: {message.message_type}")
-        
-        # Validar mensaje y enviar respuesta de error si es inválido
-        if not await message_handler.validate_message(message): 
-            logger.warning(f"Mensaje inválido o no soportado: {message.message_type}")
-            validation_msg = "❌ Tipo de mensaje no soportado o datos incompletos"
-            await whatsapp_service.send_message(message.from_number, validation_msg)
-            return
-
-        # Procesar mensaje completo (análisis + resultado + respuesta automática)
-        await message_handler.process_message(message)
-        
-        logger.info(f"Mensaje procesado exitosamente: {message.message_id}")
-        
-    except ValueError as e:
-        # Error de validación o tipo no soportado
-        logger.error(f"Error de validación en mensaje: {e}")
-        # MessageHandler ya envió respuesta de validación
-    except Exception as e:
-        # Error general de procesamiento
-        logger.error(f"Error procesando mensaje individual: {e}")
-        # MessageHandler ya envió respuesta de error
-
+#async def process_single_message(message_data: dict, webhook_value: dict):
+#    """Procesa un solo mensaje de WhatsApp de forma asíncrona"""
+#    try:
+#        # Extraer información básica del webhook
+#        message = extract_message_info(message_data, webhook_value)
+#        
+#        logger.info(f"Procesando mensaje de {message.from_number}: {message.message_type}")
+#        
+#        # Validar mensaje y enviar respuesta de error si es inválido
+#        if not await message_handler.validate_message(message): 
+#            logger.warning(f"Mensaje inválido o no soportado: {message.message_type}")
+#            validation_msg = "❌ Tipo de mensaje no soportado o datos incompletos"
+#            await whatsapp_service.send_message(message.from_number, validation_msg)
+#            return
+#
+#        # Procesar mensaje completo (análisis + resultado + respuesta automática)
+#        await message_handler.process_message(message)
+#        
+#        logger.info(f"Mensaje procesado exitosamente: {message.message_id}")
+#        
+#    except ValueError as e:
+#        # Error de validación o tipo no soportado
+#        logger.error(f"Error de validación en mensaje: {e}")
+#        # MessageHandler ya envió respuesta de validación
+#    except Exception as e:
+#        # Error general de procesamiento
+#        logger.error(f"Error procesando mensaje individual: {e}")
+#        # MessageHandler ya envió respuesta de error
+#
 
 # ===== PUNTO DE ENTRADA =====
 

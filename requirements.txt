@@ -1,8 +1,9 @@
 # Web Framework
-fastapi==0.104.1
-uvicorn==0.24.0
-pydantic==2.5.0
+fastapi==0.115.*
+uvicorn==0.30.*
+pydantic==2.8.*
 
+# ... resto igual
 # Google Cloud APIs
 google-auth==2.23.4
 google-auth-oauthlib==1.1.0
@@ -23,7 +24,7 @@ python-multipart==0.0.6
 # Configuration
 python-dotenv==1.0.0
 
-# Logging & Monitoring (opcional para Cloud Run)
+# Logging & Monitoring
 google-cloud-logging==3.8.0
 
 # Security

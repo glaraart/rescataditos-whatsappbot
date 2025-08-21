@@ -5,7 +5,7 @@ from app.models.whatsapp import WhatsAppMessage, AIAnalysis
 from app.services.ai import AIService
 from app.services.sheets import SheetsService
 from app.services.whatsapp import WhatsAppService
-from app.services.drive import DriveService
+#from app.services.drive import DriveService
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ class MessageHandler:
         self.ai_service = AIService()
         self.sheets_service = SheetsService()
         self.whatsapp_service = WhatsAppService()
-        self.drive_service = DriveService()
+        #self.drive_service = DriveService()
  
         
         # Registry de handlers por tipo de mensaje
