@@ -105,7 +105,7 @@ async def whatsapp_webhook(request: Request):
                 for message_data in messages:
                     # Procesar mensaje en paralelo (no bloquea otros mensajes)
                     #asyncio.create_task(process_single_message(message_data, value))
-                    print(message_data)
+                    print("mensaje" , message_data)
         return {"status": "received"}
         
     except json.JSONDecodeError:
