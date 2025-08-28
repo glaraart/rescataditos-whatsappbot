@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 # ===== CONFIGURACIÓN =====
 # WhatsApp
 VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN")
-WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
  
 # Cloud Run
 PORT = int(os.getenv("PORT", 8080))
