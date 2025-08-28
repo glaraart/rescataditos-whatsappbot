@@ -7,9 +7,12 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app
 
 # Instalar dependencias del sistema (si las necesitas)
+# Instalar dependencias del sistema (ej. gcc si alguna lib Python lo necesita, y ffmpeg para pydub)
 RUN apt-get update && apt-get install -y \
     gcc \
-    && rm -rf /var/lib/apt/lists/*
+    ffmpeg \
+ && rm -rf /var/lib/apt/lists/*
+
 
 # Directorio trabajo
 WORKDIR /app

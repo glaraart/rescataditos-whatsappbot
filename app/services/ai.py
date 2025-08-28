@@ -83,41 +83,39 @@ class AIService:
             logger.error(f"Error en análisis de texto: {e}")
             return self._create_fallback_analysis(text, str(e))
     
-    async def audio_to_text(self, audio_bytes: bytes, *, ext=".wav", language="es") -> str:
-            """
-            Convierte audio a texto con OpenAI (SDK >=1.0).
-            - audio_bytes: contenido binario del audio (ideal: WAV/MP3/WebM).
-            - ext: extensión temporal para el archivo (usa ".wav" si convertiste desde OGG/Opus).
-            """
-            # 1) guardar archivo temporal
-            with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
-                tmp.write(audio_bytes)
-                tmp_path = tmp.name
+    async def ogg_opus_to_wav_bytes(self, ogg_bytes: bytes) -> bytes:
+        """Convierte OGG/Opus a WAV (16kHz, mono) en memoria."""
+        def _convert():
+            audio = AudioSegment.from_file(io.BytesIO(ogg_bytes), format="ogg")
+            audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)
+            out = io.BytesIO()
+            audio.export(out, format="wav")
+            return out.getvalue()
 
-            try:
-                # 2) abrir el archivo en un hilo para no bloquear el event loop
-                f = await asyncio.to_thread(open, tmp_path, "rb")
+        # Pydub/ffmpeg es bloqueante; ejecútalo fuera del event loop
+        return await asyncio.to_thread(_convert)
 
-                # 3) pedir transcripción
-                resp = await self.client.audio.transcriptions.create(
-                    # Modelos válidos: "gpt-4o-mini-transcribe", "gpt-4o-transcribe", "whisper-1"
-                    model="gpt-4o-mini-transcribe",
-                    file=f,
-                    language=language,       # opcional pero recomendado
-                    response_format="text"      # devuelve string plano
-                )
+    async def audio_to_text(self, audio_bytes: bytes, *, assume_ogg=True, language="es", use_model="gpt-4o-mini-transcribe") -> str:
+        """
+        Transcribe audio usando el endpoint CORRECTO de transcripción.
+        - Si assume_ogg=True, convierte a WAV antes de enviar.
+        """
+        # 1) Normaliza a WAV si viene de WhatsApp (OGG/Opus)
+        wav_bytes = await self.ogg_opus_to_wav_bytes(audio_bytes) if assume_ogg else audio_bytes
 
-                # resp puede devolver directamente texto si pides response_format="text"
-                text = resp if isinstance(resp, str) else getattr(resp, "text", "")
-                return (text or "").strip()
+        # 2) Abrir un file-like con nombre y extensión correctos (ayuda al SDK a setear el mime)
+        wav_buffer = io.BytesIO(wav_bytes)
+        wav_buffer.name = "audio.wav"  # <- importante: filename “realista”
 
-            except Exception as e:
-                raise RuntimeError(f"Error en transcripción: {e}") from e
-            finally:
-                try:
-                    os.unlink(tmp_path)
-                except Exception:
-                    pass
+        # 3) Llamar al endpoint de TRANSCRIPCIÓN (NO al de chat)
+        resp = await client.audio.transcriptions.create(
+            model=use_model,            # "gpt-4o-mini-transcribe" o "whisper-1"
+            file=wav_buffer,            # file-like con nombre
+            language=language,
+            response_format="text"      # devuelve string directo
+        )
+        # Si pides "text", resp ya es str
+        return resp.strip() if isinstance(resp, str) else getattr(resp, "text", "").strip()
     
     async def analyze_image_and_text(self, image_url: str, text: str = "") -> AIAnalysis:
         """Analiza imagen y texto opcional usando GPT-4 Vision"""
