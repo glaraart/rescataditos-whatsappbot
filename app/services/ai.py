@@ -1,30 +1,28 @@
 import os
+from app.config import settings
 import json
 import logging
 from typing import Dict, Any, Optional
 import openai
-from app.models.whatsapp import AIAnalysis
-from dotenv import load_dotenv
+from app.models.whatsapp import AIAnalysis 
 logger = logging.getLogger(__name__)
-load_dotenv()
 class AIService:
     """Servicio para análisis de IA usando OpenAI"""
     
     def __init__(self):
         
-        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.api_key = settings.OPENAI_API_KEY
         if not self.api_key:
             raise ValueError("OPENAI_API_KEY no configurada")
-        
         openai.api_key = self.api_key
         
         # Prompt base para análisis de rescate
         self.rescue_prompt = """
-        Eres un asistente especializado en rescate de animales. Analiza el siguiente mensaje y clasifícalo según estos tipos:
+        Analiza el siguiente mensaje y clasifícalo según estos tipos:
 
         TIPOS DISPONIBLES:
-        - nuevo_rescate: Reporte de un animal que necesita rescate
-        - cambio_estado: Actualización del estado de un animal en rescate
+        - nuevo_rescate: Reporte de un animal que fue rescatado
+        - cambio_estado: Actualización del estado de un animal
         - visita_vet: Información sobre visita veterinaria
         - gasto: Registro de gastos relacionados con rescate
         - consulta: Pregunta general o información

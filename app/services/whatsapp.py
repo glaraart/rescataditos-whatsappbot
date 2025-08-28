@@ -3,13 +3,15 @@ from fastapi import Request, HTTPException
 from typing import Dict, Any
 import json
 import logging
+import httpx
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 class WhatsAppService:
-    def __init__(self, verify_token: str, access_token: str):
-        self.verify_token = verify_token
-        self.access_token = access_token
+    def __init__(self):
+        self.access_token = settings.WHATSAPP_ACCESS_TOKEN
+        self.verify_token = settings.WHATSAPP_VERIFY_TOKEN
     
     async def verify_webhook(self, request: Request) -> str:
         """Verify webhook for WhatsApp"""
@@ -78,3 +80,11 @@ class WhatsAppService:
         # Implement message sending logic
         logger.info(f"Sending message to {recipient}: {message}")
         return {"status": "sent"}
+    
+    async def download_media(self, media_url: str) -> bytes:
+        """Descarga un archivo multimedia desde una URL protegida (requiere access_token)"""
+        headers = {"Authorization": f"Bearer {self.access_token}"}
+        async with httpx.AsyncClient() as client:
+            response = await client.get(media_url, headers=headers)
+            response.raise_for_status()
+            return response.content

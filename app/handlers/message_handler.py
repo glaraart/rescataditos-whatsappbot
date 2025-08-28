@@ -27,11 +27,11 @@ class MessageHandler:
         }
      
     
-    async def process_message(self, message: WhatsAppMessage) -> AIAnalysis:
+    async def process_message(self, message) -> AIAnalysis:
         """Procesa mensaje completo: análisis + manejo del resultado + respuesta automática"""
         try:
             # Procesar mensaje
-            handler = self.handlers.get(message.message_type)
+            handler = self.handlers.get(message.get("type"))
             analysis = await handler(message) 
             # Manejar resultado (logging + crear registros)
             await self._handle_analysis_result(message, analysis)
@@ -143,8 +143,14 @@ class MessageHandler:
     async def _handle_text(self, message: WhatsAppMessage) -> AIAnalysis:
         """Handler para mensajes de texto"""
         try:
+            # Determinar tipo y contenido
+            message_type = "text"  # Default
+            content = message["text"]["body"]
+            media_url = None
+            media_mime_type = None
+              
             # Analizar texto con IA
-            analysis = await self.ai_service.analyze_text(message.content)
+            analysis = await self.ai_service.analyze_text(content)
             return analysis
             
         except Exception as e:
@@ -156,11 +162,14 @@ class MessageHandler:
                 detalles={"error": str(e), "mensaje_original": message.content}
             )
     
-    async def _handle_audio(self, message: WhatsAppMessage) -> AIAnalysis:
+    async def _handle_audio(self, message) -> AIAnalysis:
         """Handler para mensajes de audio"""
         try:
-            # Descargar audio desde WhatsApp
-            audio_file = await self.whatsapp_service.download_media(message.media_url)
+            # Descargar audio desde WhatsApp 
+            audio_data = message["audio"]
+            media_url = f"https://graph.facebook.com/v22.0/{audio_data['id']}"
+            media_mime_type = audio_data.get("mime_type", "audio/ogg")
+            audio_file = await self.whatsapp_service.download_media(media_url)
             
             if not audio_file:
                 raise Exception("No se pudo descargar el archivo de audio")
@@ -188,37 +197,38 @@ class MessageHandler:
                 detalles={"error": str(e), "tipo_original": "audio"}
             )
     
-    async def _handle_image(self, message: WhatsAppMessage) -> AIAnalysis:
+    async def _handle_image(self, message ) -> AIAnalysis:
         """Handler para mensajes con imagen"""
         try:
             # Descargar imagen desde WhatsApp
-            image_file = await self.whatsapp_service.download_media(message.media_url)
+            image_data = message["image"]
+            media_url = f"https://graph.facebook.com/v22.0/{image_data['id']}"
+            media_mime_type = image_data.get("mime_type", "image/jpeg")
+            content = image_data.get("caption", "")
+            image_file = await self.whatsapp_service.download_media(media_url)
             
             if not image_file:
                 raise Exception("No se pudo descargar la imagen")
             
             # Subir imagen a Google Drive
-            drive_url = await self.drive_service.upload_file(
-                image_file, 
-                f"rescate_{message.message_id}.jpg"
-            )
-            
-            if not drive_url:
-                raise Exception("No se pudo subir imagen a Google Drive")
-            
+            #drive_url = await self.drive_service.upload_file(
+            #    image_file, 
+            #    f"rescate_{message.message_id}.jpg"
+            #)
+         #
             # Analizar imagen + texto (si hay caption) con IA
-            analysis = await self.ai_service.analyze_image_and_text(
-                image_url=drive_url,
-                text=message.content or ""
-            )
-            
-            # Agregar información adicional
-            analysis.detalles["imagen_url"] = drive_url
-            analysis.detalles["tipo_original"] = "imagen"
-            if message.content:
-                analysis.detalles["caption"] = message.content
-            
-            return analysis
+            #analysis = await self.ai_service.analyze_image_and_text(
+            #    image_url=drive_url,
+            #    text=message.content or ""
+            #)
+            #
+            ## Agregar información adicional
+            #analysis.detalles["imagen_url"] = drive_url
+            #analysis.detalles["tipo_original"] = "imagen"
+            #if message.content:
+            #    analysis.detalles["caption"] = message.content
+            #
+            #return analysis
             
         except Exception as e:
             logger.error(f"Error procesando mensaje con imagen: {e}")
@@ -231,4 +241,3 @@ class MessageHandler:
                     "caption": message.content or ""
                 }
             )
-     

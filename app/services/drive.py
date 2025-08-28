@@ -9,10 +9,11 @@
 #
 #logger = logging.getLogger(__name__)
 #
+from app.config import settings
 #class DriveService:
-#    def __init__(self, credentials_path: str, folder_id: Optional[str] = None):
-#        self.credentials_path = credentials_path
-#        self.folder_id = folder_id
+#    def __init__(self):
+#        self.credentials_path = settings.GOOGLE_CREDENTIALS_PATH
+#        self.folder_id = settings.GOOGLE_DRIVE_FOLDER_ID
 #        self.service = None
 #        self._authenticate()
 #    

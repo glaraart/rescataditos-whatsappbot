@@ -2,12 +2,14 @@
 import gspread
 from google.oauth2.service_account import Credentials
 from typing import List, Dict, Any, Optional
-import logging 
+import logging
+from app.config import settings
 logger = logging.getLogger(__name__)
 
 class SheetsService:
     def __init__(self):
- 
+        self.credentials_path = settings.GOOGLE_CREDENTIALS_PATH
+        self.spreadsheet_id = settings.GOOGLE_SHEETS_ID
         self.client = None
         self.worksheet = None
         #self._authenticate()
