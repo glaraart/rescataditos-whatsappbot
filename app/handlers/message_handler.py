@@ -177,6 +177,7 @@ class MessageHandler:
             
             # Convertir audio a texto con Whisper directamente desde bytes
             text = await self.ai_service.audio_to_text(audio_bytes)
+            print("Transcripción de audio:", text)
             # Analizar el texto transcrito 
              
             analysis = await self.ai_service.analyze_text(text)
