@@ -85,6 +85,7 @@ class WhatsAppService:
         """Descarga un archivo multimedia desde una URL protegida (requiere access_token)"""
         headers = {"Authorization": f"Bearer {self.access_token}"}
         async with httpx.AsyncClient() as client:
+            print("url" , media_url)
             response = await client.get(media_url, headers=headers)
             response.raise_for_status()
             print("Media downloaded successfully")
