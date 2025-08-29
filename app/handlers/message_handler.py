@@ -5,6 +5,8 @@ from app.models.whatsapp import WhatsAppMessage, AIAnalysis
 from app.services.ai import AIService
 from app.services.sheets import SheetsService
 from app.services.whatsapp import WhatsAppService
+import tempfile
+import os
 #from app.services.drive import DriveService
 
 logger = logging.getLogger(__name__)
@@ -165,22 +167,18 @@ class MessageHandler:
     async def _handle_audio(self, message) -> AIAnalysis:
         """Handler para mensajes de audio"""
         try:
-            # Descargar audio desde WhatsApp 
+                                   
+            # Convertir audio a texto con Whisper
+            #text = await self.ai_service.audio_to_text(audio_file)
             audio_data = message["audio"]
             media_url = f"https://graph.facebook.com/v22.0/{audio_data['id']}"
             media_mime_type = audio_data.get("mime_type", "audio/ogg")
-            audio_file = await self.whatsapp_service.download_media(media_url)
+            audio_bytes = await self.whatsapp_service.download_media(media_url)
             
-            if not audio_file:
-                raise Exception("No se pudo descargar el archivo de audio")
-            
-            # Convertir audio a texto con Whisper
-            text = await self.ai_service.audio_to_text(audio_file)
-            
-            if not text:
-                raise Exception("No se pudo convertir audio a texto")
-            
-            # Analizar el texto transcrito
+            # Convertir audio a texto con Whisper directamente desde bytes
+            text = await self.ai_service.audio_to_text(audio_bytes)
+            # Analizar el texto transcrito 
+             
             analysis = await self.ai_service.analyze_text(text)
             
             # Agregar información de que fue audio original
@@ -197,6 +195,18 @@ class MessageHandler:
                 detalles={"error": str(e), "tipo_original": "audio"}
             )
     
+    def _get_audio_extension(self, mime_type: str) -> str:
+        """Obtiene la extensión correcta basada en el mime type"""
+        mime_to_extension = {
+            "audio/ogg": ".ogg",
+            "audio/mpeg": ".mp3",
+            "audio/mp4": ".mp4",
+            "audio/wav": ".wav",
+            "audio/webm": ".webm",
+            "audio/aac": ".aac"
+        }
+        return mime_to_extension.get(mime_type, ".ogg")
+
     async def _handle_image(self, message ) -> AIAnalysis:
         """Handler para mensajes con imagen"""
         try:

@@ -1,11 +1,10 @@
 import os
-from app.config import settings
 import json
 import logging
-import openai
+import tempfile
+from app.config import settings
 from app.models.whatsapp import AIAnalysis 
 from openai import AsyncOpenAI
-import asyncio, os, tempfile
 
 logger = logging.getLogger(__name__)
 class AIService:
@@ -17,8 +16,7 @@ class AIService:
         if not self.api_key:
             raise ValueError("OPENAI_API_KEY no configurada")
         
-        openai.api_key = self.api_key
-        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         # Prompt base para análisis de rescate
         self.rescue_prompt = """
         Analiza el siguiente mensaje y clasifícalo según estos tipos:
@@ -54,7 +52,7 @@ class AIService:
         try:
             logger.info(f"Analizando texto: {text[:100]}...")
             
-            response = await openai.ChatCompletion.acreate(
+            response = await self.client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
                     {"role": "system", "content": self.rescue_prompt},
@@ -83,40 +81,35 @@ class AIService:
             logger.error(f"Error en análisis de texto: {e}")
             return self._create_fallback_analysis(text, str(e))
     
-    async def ogg_opus_to_wav_bytes(self, ogg_bytes: bytes) -> bytes:
-        """Convierte OGG/Opus a WAV (16kHz, mono) en memoria."""
-        def _convert():
-            audio = AudioSegment.from_file(io.BytesIO(ogg_bytes), format="ogg")
-            audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)
-            out = io.BytesIO()
-            audio.export(out, format="wav")
-            return out.getvalue()
-
-        # Pydub/ffmpeg es bloqueante; ejecútalo fuera del event loop
-        return await asyncio.to_thread(_convert)
-
-    async def audio_to_text(self, audio_bytes: bytes, *, assume_ogg=True, language="es", use_model="gpt-4o-mini-transcribe") -> str:
-        """
-        Transcribe audio usando el endpoint CORRECTO de transcripción.
-        - Si assume_ogg=True, convierte a WAV antes de enviar.
-        """
-        # 1) Normaliza a WAV si viene de WhatsApp (OGG/Opus)
-        wav_bytes = await self.ogg_opus_to_wav_bytes(audio_bytes) if assume_ogg else audio_bytes
-
-        # 2) Abrir un file-like con nombre y extensión correctos (ayuda al SDK a setear el mime)
-        wav_buffer = io.BytesIO(wav_bytes)
-        wav_buffer.name = "audio.wav"  # <- importante: filename “realista”
-
-        # 3) Llamar al endpoint de TRANSCRIPCIÓN (NO al de chat)
-        resp = await client.audio.transcriptions.create(
-            model=use_model,            # "gpt-4o-mini-transcribe" o "whisper-1"
-            file=wav_buffer,            # file-like con nombre
-            language=language,
-            response_format="text"      # devuelve string directo
-        )
-        # Si pides "text", resp ya es str
-        return resp.strip() if isinstance(resp, str) else getattr(resp, "text", "").strip()
-    
+    async def audio_to_text(self, audio_file: bytes) -> str:
+        """Convierte audio a texto usando Whisper de OpenAI"""
+        try:
+            logger.info("Transcribiendo audio con Whisper...")
+            
+            # Guardar archivo temporal para Whisper
+            with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as tmp_file:
+                tmp_file.write(audio_file)
+                tmp_file_path = tmp_file.name
+            
+            # Transcribir con Whisper usando la nueva API
+            with open(tmp_file_path, "rb") as audio:
+                response = await self.client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio,
+                    language="es"  # Español
+                )
+            
+            # Limpiar archivo temporal
+            os.unlink(tmp_file_path)
+            
+            text = response.text.strip()
+            logger.info(f"Audio transcrito: {text[:100]}...")
+            
+            return text
+            
+        except Exception as e:
+            logger.error(f"Error transcribiendo audio: {e}")
+            raise Exception(f"Error en transcripción: {e}")
     async def analyze_image_and_text(self, image_url: str, text: str = "") -> AIAnalysis:
         """Analiza imagen y texto opcional usando GPT-4 Vision"""
         try:
@@ -150,7 +143,7 @@ class AIService:
                 }
             ]
             
-            response = await openai.ChatCompletion.acreate(
+            response = await self.client.chat.completions.create(
                 model="gpt-4o",
                 messages=messages,
                 temperature=0.3,
