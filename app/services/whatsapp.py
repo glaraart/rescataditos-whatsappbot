@@ -87,4 +87,5 @@ class WhatsAppService:
         async with httpx.AsyncClient() as client:
             response = await client.get(media_url, headers=headers)
             response.raise_for_status()
+            print("Media downloaded successfully")
             return response.content
