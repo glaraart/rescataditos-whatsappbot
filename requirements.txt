@@ -29,3 +29,5 @@ google-cloud-logging==3.8.0
 
 # Security
 cryptography==41.0.7
+
+pydub==0.25.1

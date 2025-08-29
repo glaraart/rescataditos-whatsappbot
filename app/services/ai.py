@@ -86,10 +86,21 @@ class AIService:
         try:
             logger.info("Transcribiendo audio con Whisper...")
             
+            # Debug: revisar los bytes recibidos
+            print(f"Tamaño del audio: {len(audio_file)} bytes")
+            print(f"Primeros 20 bytes: {audio_file[:20]}")
+            print(f"Últimos 20 bytes: {audio_file[-20:]}")
+            
+            # Verificar si parece ser un archivo válido
+            if len(audio_file) < 100:
+                raise Exception(f"Archivo de audio muy pequeño: {len(audio_file)} bytes")
+            
             # Guardar archivo temporal para Whisper
             with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as tmp_file:
                 tmp_file.write(audio_file)
                 tmp_file_path = tmp_file.name
+            
+            print(f"Archivo temporal creado: {tmp_file_path}")
             
             # Transcribir con Whisper usando la nueva API
             with open(tmp_file_path, "rb") as audio:
