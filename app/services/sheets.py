@@ -33,6 +33,7 @@ class SheetsService:
                 creds = Credentials.from_service_account_info(credentials_dict, scopes=scope)
             else:
                 # Usar archivo si no hay JSON en variable de entorno
+                print ("usando archivo")
                 creds = Credentials.from_service_account_file(
                     self.credentials_path, 
                     scopes=scope
