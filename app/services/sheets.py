@@ -24,12 +24,21 @@ class SheetsService:
                 "https://www.googleapis.com/auth/drive"
             ]
             
-            creds = Credentials.from_service_account_file(
-                self.credentials_path, 
-                scopes=scope
-            )
-            self.client = gspread.authorize(creds)
+            # Usar JSON desde variable de entorno si está disponible
+            if settings.GOOGLE_CREDENTIALS_JSON:
+                import json
+                credentials_dict = json.loads(settings.GOOGLE_CREDENTIALS_JSON)
+                creds = Credentials.from_service_account_info(credentials_dict, scopes=scope)
+            else:
+                # Usar archivo si no hay JSON en variable de entorno
+                creds = Credentials.from_service_account_file(
+                    self.credentials_path, 
+                    scopes=scope
+                )
+            
+            client = gspread.authorize(creds)
             logger.info("Successfully authenticated with Google Sheets API")
+            return client
         except Exception as e:
             logger.error(f"Error authenticating with Google Sheets: {e}")
             raise
