@@ -73,6 +73,7 @@ class AIService:
                 max_tokens=1000
             )
             
+            print ("respuesta" ,response)
             # Parsear respuesta JSON
             content = response.choices[0].message.content
             analysis_data = json.loads(content)
