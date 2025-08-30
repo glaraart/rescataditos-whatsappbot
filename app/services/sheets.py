@@ -27,7 +27,9 @@ class SheetsService:
             # Usar JSON desde variable de entorno si está disponible
             if settings.GOOGLE_CREDENTIALS_JSON:
                 import json
+
                 credentials_dict = json.loads(settings.GOOGLE_CREDENTIALS_JSON)
+                print("credenciales", credentials_dict)
                 creds = Credentials.from_service_account_info(credentials_dict, scopes=scope)
             else:
                 # Usar archivo si no hay JSON en variable de entorno
