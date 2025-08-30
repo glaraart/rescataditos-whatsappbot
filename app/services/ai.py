@@ -76,7 +76,7 @@ class AIService:
             # Parsear respuesta JSON
             content = response.choices[0].message.content
             analysis_data = json.loads(content)
-            
+            print ("analisis" , analysis_data)
             # Validar y crear objeto AIAnalysis
             return AIAnalysis(
                 tipo_registro=analysis_data.get("tipo_registro", "consulta"),
