@@ -72,12 +72,20 @@ class AIService:
                 temperature=0.3,
                 max_tokens=1000
             )
-            
-            print ("respuesta" ,response)
-            # Parsear respuesta JSON
+            # Parsear respuesta JSON - limpiar bloques de código si existen
             content = response.choices[0].message.content
+            
+            # Limpiar backticks y bloques de código
+            content = content.strip()
+            if content.startswith("```json"):
+                content = content[7:]  # Remover ```json
+            elif content.startswith("```"):
+                content = content[3:]   # Remover ```
+            if content.endswith("```"):
+                content = content[:-3]  # Remover ``` del final
+            content = content.strip()
+            
             analysis_data = json.loads(content)
-            print ("analisis" , analysis_data)
             # Validar y crear objeto AIAnalysis
             return AIAnalysis(
                 tipo_registro=analysis_data.get("tipo_registro", "consulta"),
@@ -165,8 +173,19 @@ class AIService:
                 max_tokens=1000
             )
             
-            # Parsear respuesta JSON
+            # Parsear respuesta JSON - limpiar bloques de código si existen
             content = response.choices[0].message.content
+            
+            # Limpiar backticks y bloques de código
+            content = content.strip()
+            if content.startswith("```json"):
+                content = content[7:]  # Remover ```json
+            elif content.startswith("```"):
+                content = content[3:]   # Remover ```
+            if content.endswith("```"):
+                content = content[:-3]  # Remover ``` del final
+            content = content.strip()
+            
             analysis_data = json.loads(content)
             
             # Crear análisis con información de imagen
