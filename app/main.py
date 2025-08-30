@@ -8,10 +8,9 @@ import asyncio
 import logging
 import uvicorn
 from fastapi import FastAPI, Request, HTTPException, Query
-from fastapi.responses import PlainTextResponse, JSONResponse 
+from fastapi.responses import PlainTextResponse
 # ===== HANDLERS =====
-from app.handlers.message_handler import MessageHandler
-from app.services.whatsapp import WhatsAppService
+from app.handlers.message_handler import MessageHandler 
 
 # Configurar logging
 logging.basicConfig(
@@ -74,7 +73,6 @@ async def whatsapp_webhook(request: Request):
                 for message_data in change.get("value", {}).get("messages", []):
                     # Procesar mensaje en paralelo (no bloquea otros mensajes)
                     asyncio.create_task(process_single_message(message_data))
-                    print("mensaje" , message_data)
         return {"status": "received"}
         
     except json.JSONDecodeError:
@@ -87,25 +85,10 @@ async def whatsapp_webhook(request: Request):
 # ===== PROCESAMIENTO DE MENSAJES =====
 async def process_single_message(message_data: dict):
     """Procesa un solo mensaje de WhatsApp de forma asíncrona"""
-    try:
-        # Extraer información básica del webhook
-        logger.info(f"Procesando mensaje de {message_data.get('from')}: {message_data.get('type')}")
-
         # Procesar mensaje completo (análisis + resultado + respuesta automática)
-        message_handler = MessageHandler()
-        
-        await message_handler.process_message(message_data)
-
-        logger.info(f"Mensaje procesado exitosamente: {message_data.get('id')}")
-        
-    except ValueError as e:
-        # Error de validación o tipo no soportado
-        logger.error(f"Error de validación en mensaje: {e}")
-        # MessageHandler ya envió respuesta de validación
-    except Exception as e:
-        # Error general de procesamiento
-        logger.error(f"Error procesando mensaje individual: {e}")
-        # MessageHandler ya envió respuesta de error
+    message_handler = MessageHandler()    
+    await message_handler.process_message(message_data)
+ 
 
 # ===== PUNTO DE ENTRADA =====
 

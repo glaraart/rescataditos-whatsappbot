@@ -21,7 +21,9 @@ class Settings:
     
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./rescataditos.db")
-    
+
+    # Sheet
+    KEY_SHEET: str = os.getenv("KEY_SHEET")
     # Environment
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     DEBUG: bool = os.getenv("DEBUG", "True").lower() == "true"

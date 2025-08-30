@@ -49,37 +49,31 @@ class MessageHandler:
             await self._send_error_response(message, str(e))
             raise
     
-    async def _handle_analysis_result(self, message: WhatsAppMessage, analysis: AIAnalysis):
+    async def _handle_analysis_result(self, message, analysis: AIAnalysis):
         """Maneja el resultado del análisis de IA"""
         try:
-            # Registrar mensaje completo + análisis en Sheets
-            message_dict = {
-                'timestamp': message.timestamp,
-                'from_number': message.from_number,
-                'type': message.message_type,
-                'content': message.content or '',
-                'message_id': message.message_id
-            }
+     
             analysis_dict = {
                 'tipo_registro': analysis.tipo_registro,
-                'confianza': analysis.confianza,
                 'detalles': analysis.detalles
             }
-            await self.sheets_service.log_message_with_analysis(message_dict, analysis_dict)
+            await self.sheets_service.log_message_with_analysis(message, analysis_dict)
             
             # Crear registros según tipo
             if analysis.tipo_registro == "nuevo_rescate":
-                await self.sheets_service.create_animal_record(analysis.detalles)
-                
+                await self.sheets_service.insert_sheet_from_dict(analysis.detalles, "ANIMAL")
+                await self.sheets_service.insert_sheet_from_dict(analysis.detalles, "POST")
+                await self.sheets_service.insert_sheet_from_dict(analysis.detalles,"EVENTO")
+
             elif analysis.tipo_registro == "cambio_estado":
-                await self.sheets_service.create_state_change_record(analysis.detalles)
+                await self.sheets_service.insert_sheet_from_dict(analysis.detalles,"EVENTO")
                 
             elif analysis.tipo_registro == "visita_vet":
-                await self.sheets_service.create_vet_visit_record(analysis.detalles)
+                await self.sheets_service.insert_sheet_from_dict(analysis.detalles,"VISITA_VETERINARIA")
                 
             elif analysis.tipo_registro == "gasto":
-                await self.sheets_service.create_expense_record(analysis.detalles)
-                
+                await self.sheets_service.insert_sheet_from_dict(analysis.detalles,"GASTOS")
+
             elif analysis.tipo_registro == "consulta":
                 # Solo log, no crear registro adicional
                 logger.info(f"Consulta registrada: {analysis.detalles}")
@@ -95,10 +89,7 @@ class MessageHandler:
         try:
             # Generar mensaje de confirmación
             success_message = f"✅ Mensaje procesado: {analysis.tipo_registro}"
-            
-            if analysis.confianza < 0.5:
-                success_message += f" (confianza: {analysis.confianza:.1%})"
-            
+                        
             # Agregar detalles específicos según el tipo
             if analysis.tipo_registro == "nuevo_rescate" and analysis.animal_nombre:
                 success_message += f"\n🐾 Animal: {analysis.animal_nombre}"
@@ -126,22 +117,7 @@ class MessageHandler:
         except Exception as e:
             logger.error(f"Error enviando respuesta al usuario: {e}")
             # No re-lanzar error para no afectar el procesamiento principal
-    
-    async def validate_message(self, message: WhatsAppMessage) -> bool:
-
-        """Valida si el mensaje puede ser procesado"""
-        if message.message_type not in self.handlers:
-            return False
         
-        # Validaciones específicas por tipo
-        if message.message_type == "text" and not message.content:
-            return False
-        
-        if message.message_type in ["audio", "image"] and not message.media_url:
-            return False
-        
-        return True
-    
     async def _handle_text(self, message: WhatsAppMessage) -> AIAnalysis:
         """Handler para mensajes de texto"""
         try:
@@ -177,9 +153,7 @@ class MessageHandler:
             
             # Convertir audio a texto con Whisper directamente desde bytes
             text = await self.ai_service.audio_to_text(audio_bytes)
-            print("Transcripción de audio:", text)
             # Analizar el texto transcrito 
-             
             analysis = await self.ai_service.analyze_text(text)
             
             # Agregar información de que fue audio original
@@ -196,18 +170,6 @@ class MessageHandler:
                 detalles={"error": str(e), "tipo_original": "audio"}
             )
     
-    def _get_audio_extension(self, mime_type: str) -> str:
-        """Obtiene la extensión correcta basada en el mime type"""
-        mime_to_extension = {
-            "audio/ogg": ".ogg",
-            "audio/mpeg": ".mp3",
-            "audio/mp4": ".mp4",
-            "audio/wav": ".wav",
-            "audio/webm": ".webm",
-            "audio/aac": ".aac"
-        }
-        return mime_to_extension.get(mime_type, ".ogg")
-
     async def _handle_image(self, message ) -> AIAnalysis:
         """Handler para mensajes con imagen"""
         try:

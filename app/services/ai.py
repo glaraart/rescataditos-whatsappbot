@@ -18,6 +18,7 @@ class AIService:
         
         self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         # Prompt base para análisis de rescate
+    
         self.rescue_prompt = """
         Analiza el siguiente mensaje y clasifícalo según estos tipos:
 
@@ -27,22 +28,32 @@ class AIService:
         - visita_vet: Información sobre visita veterinaria
         - gasto: Registro de gastos relacionados con rescate
         - consulta: Pregunta general o información
-
+ 
         RESPONDE EN JSON con esta estructura exacta:
         {
-            "tipo_registro": "nuevo_rescate",
-            "animal_nombre": "nombre del animal si se menciona",
-            "confianza": 0.85,
-            "detalles": {
-                "ubicacion": "lugar del rescate",
-                "estado_animal": "descripción del estado",
-                "urgencia": "alta/media/baja",
-                "contacto": "información de contacto si existe"
+            "tipo_registro": "nuevo_rescate", 
+            "nombre_animal": "nombre del animal si se menciona",
+            "detalles": { 
+                "tipo_animal": "perro",
+                "edad": "2 años",
+                "condicion_salud": "describir cómo fue recibido",
+                "color_pelo": [
+                    { "color": "blanco", "porcentaje": 70 },
+                    { "color": "negro", "porcentaje": 30 }
+                ],
+                "ubicacion": "lugar del rescate por ejemplo Villa Fiorito"
+            },
+            "cambio_estado": { 
+                "ubicacion": 1 Refugio,2 Transito,3 Veterinaria,4 Hogar_adoptante,
+                "estado": 1 Perdido,2 En Tratamiento,3 En Adopción,5 Adoptado,6 Fallecido,
+                "persona": "nombre de la persona o cuenta de ig que transita o que adopta",
+                "relacion": 1 Adoptante,2 Transitante,3 Veterinario,4 Voluntario,5 Interesado
             }
-        }
 
-        Para cambio_estado incluye: nuevo_estado, fecha
-        Para visita_vet incluye: veterinario, fecha, diagnostico, tratamiento
+        }
+        Si es nuevo_rescate colocar detalles y cambio_estado.
+        Si es cambio_estado colocar: solo cambio_estado.
+        Para visita_vet en detalles colocar: persona que lo lleva al veterinario
         Para gasto incluye: monto, concepto, fecha
         Para consulta incluye: tema, respuesta_sugerida
         """
@@ -69,8 +80,7 @@ class AIService:
             # Validar y crear objeto AIAnalysis
             return AIAnalysis(
                 tipo_registro=analysis_data.get("tipo_registro", "consulta"),
-                animal_nombre=analysis_data.get("animal_nombre"),
-                confianza=float(analysis_data.get("confianza", 0.5)),
+                animal_nombre=analysis_data.get("animal_nombre"), 
                 detalles=analysis_data.get("detalles", {})
             )
             
@@ -85,12 +95,7 @@ class AIService:
         """Convierte audio a texto usando Whisper de OpenAI"""
         try:
             logger.info("Transcribiendo audio con Whisper...")
-            
-            # Debug: revisar los bytes recibidos
-            print(f"Tamaño del audio: {len(audio_file)} bytes")
-            print(f"Primeros 20 bytes: {audio_file[:20]}")
-            print(f"Últimos 20 bytes: {audio_file[-20:]}")
-            
+                        
             # Verificar si parece ser un archivo válido
             if len(audio_file) < 100:
                 raise Exception(f"Archivo de audio muy pequeño: {len(audio_file)} bytes")
@@ -99,9 +104,7 @@ class AIService:
             with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as tmp_file:
                 tmp_file.write(audio_file)
                 tmp_file_path = tmp_file.name
-            
-            print(f"Archivo temporal creado: {tmp_file_path}")
-            
+                    
             # Transcribir con Whisper usando la nueva API
             with open(tmp_file_path, "rb") as audio:
                 response = await self.client.audio.transcriptions.create(
