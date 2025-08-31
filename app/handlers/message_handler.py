@@ -57,10 +57,12 @@ class MessageHandler:
                 'tipo_registro': analysis.tipo_registro,
                 'detalles': analysis.detalles
             }
+            print("analysis dict", analysis_dict)
             await self.sheets_service.log_message_with_analysis(message, analysis_dict)
             
             # Crear registros según tipo
             if analysis.tipo_registro == "nuevo_rescate":
+                print("insertando nuevo_rescate")
                 await self.sheets_service.insert_sheet_from_dict(analysis.detalles, "ANIMAL")
                 await self.sheets_service.insert_sheet_from_dict(analysis.detalles, "POST")
                 await self.sheets_service.insert_sheet_from_dict(analysis.detalles,"EVENTO")
