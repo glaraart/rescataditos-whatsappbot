@@ -41,18 +41,18 @@ class AIService:
                     { "color": "blanco", "porcentaje": 70 },
                     { "color": "negro", "porcentaje": 30 }
                 ],
-                "ubicacion": "lugar del rescate por ejemplo Villa Fiorito"
-            },
-            "cambio_estado": { 
-                "ubicacion": 1 Refugio,2 Transito,3 Veterinaria,4 Hogar_adoptante,
-                "estado": 1 Perdido,2 En Tratamiento,3 En Adopción,5 Adoptado,6 Fallecido,
-                "persona": "nombre de la persona o cuenta de ig que transita o que adopta",
-                "relacion": 1 Adoptante,2 Transitante,3 Veterinario,4 Voluntario,5 Interesado
+                "ubicacion": "lugar del rescate por ejemplo Villa Fiorito",
+                "cambio_estado": { 
+                    "ubicacion": 1 Refugio,2 Transito,3 Veterinaria,4 Hogar_adoptante,
+                    "estado": 1 Perdido,2 En Tratamiento,3 En Adopción,5 Adoptado,6 Fallecido,
+                    "persona": "nombre de la persona o cuenta de ig que transita o que adopta",
+                    "relacion": 1 Adoptante,2 Transitante,3 Veterinario,4 Voluntario,5 Interesado
+                }
             }
 
         }
-        Si es nuevo_rescate colocar detalles y cambio_estado.
-        Si es cambio_estado colocar: solo cambio_estado.
+        Si es nuevo_rescate agregar cambio_estado dentro de detalles.
+        Si es cambio_estado colocar: solo cambio_estado dentro de detalles.
         Para visita_vet en detalles colocar: persona que lo lleva al veterinario
         Para gasto incluye: monto, concepto, fecha
         Para consulta incluye: tema, respuesta_sugerida

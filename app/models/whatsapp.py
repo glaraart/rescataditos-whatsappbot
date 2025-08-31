@@ -124,5 +124,4 @@ class AIAnalysis(BaseModel):
     """Modelo para el análisis de IA de los mensajes"""
     tipo_registro: str = Field(..., description="nuevo_rescate, cambio_estado, visita_vet, gasto, consulta")
     animal_nombre: Optional[str] = Field(None, description="Nombre del animal")
-    confianza: float = Field(..., description="Nivel de confianza 0-1")
     detalles: Dict[str, Any] = Field(default_factory=dict, description="Detalles específicos")
