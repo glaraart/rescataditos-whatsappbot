@@ -99,16 +99,21 @@ class SheetsService:
     def log_message_with_analysis(self, message_data, analysis_result):
         """Log completo: mensaje + análisis de IA"""
         # Convertir timestamp Unix a formato legible
-        timestamp = message_data.get('timestamp')
-        dt = datetime.fromtimestamp(int(timestamp))
-        formatted_timestamp = dt.strftime('%d/%m/%Y %H:%M:%S')
-        sheet = self.get_worksheet('MENSAJES_WHATSAPP')
-        sheet.append_row([
-            formatted_timestamp,
-            message_data.get('from_number'),
-            message_data.get('type'),
-            message_data.get('content'),
-            analysis_result.get('tipo_registro', ''),
-            str(analysis_result.get('detalles', {}))
-        ])
-    
+        try:
+            print("log message with analysis", message_data, analysis_result)
+            timestamp = message_data.get('timestamp')
+            dt = datetime.fromtimestamp(int(timestamp))
+            formatted_timestamp = dt.strftime('%d/%m/%Y %H:%M:%S')
+            sheet = self.get_worksheet('MENSAJES_WHATSAPP')
+            sheet.append_row([
+                formatted_timestamp,
+                message_data.get('from_number'),
+                message_data.get('type'),
+                message_data.get('content'),
+                analysis_result.get('tipo_registro', ''),
+                analysis_result.get('detalles', {})
+            ])
+            print("Log de mensaje con análisis completado.")
+        except Exception as e:
+            logger.error(f"Error updating sheet: {str(e)}")
+            return False
