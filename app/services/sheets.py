@@ -110,8 +110,7 @@ class SheetsService:
                 message_data.get('from_number'),
                 message_data.get('type'),
                 message_data.get('content'),
-                analysis_result.get('tipo_registro', ''),
-                analysis_result.get('detalles', {})
+                analysis_result.get('tipo_registro', '')
             ])
             print("Log de mensaje con análisis completado.")
         except Exception as e:
