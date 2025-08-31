@@ -86,6 +86,7 @@ class AIService:
             content = content.strip()
             
             analysis_data = json.loads(content)
+            print("Análisis de IA:", analysis_data)
             # Validar y crear objeto AIAnalysis
             return AIAnalysis(
                 tipo_registro=analysis_data.get("tipo_registro", "consulta"),
