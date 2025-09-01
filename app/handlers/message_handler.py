@@ -1,6 +1,8 @@
 # Message handler with composition approach
 import logging
-from typing import Dict, Any
+import asyncio
+from datetime import datetime, timedelta
+from typing import Dict, Any, List
 from app.models.whatsapp import WhatsAppMessage, AIAnalysis
 from app.services.ai import AIService
 from app.services.sheets import SheetsService
@@ -19,8 +21,9 @@ class MessageHandler:
         self.sheets_service = SheetsService()
         self.whatsapp_service = WhatsAppService()
         #self.drive_service = DriveService()
- 
-        
+        # Cache para mantener contexto de conversación
+        self.conversation_cache = {}  # {phone_number: {messages: [], timestamp: datetime, waiting_for: str}}
+        self.WAIT_TIME = 300  # segundos para esperar mensajes relacionados        
         # Registry de handlers por tipo de mensaje
         self.handlers = {
             "text": self._handle_text,
@@ -29,25 +32,31 @@ class MessageHandler:
         }
      
     
-    async def process_message(self, message) -> AIAnalysis:
-        """Procesa mensaje completo: análisis + manejo del resultado + respuesta automática"""
+    async def process_message(self, message) :
+        """Procesa mensaje con contexto de conversación inteligente"""
         try:
-            # Procesar mensaje
-            handler = self.handlers.get(message.get("type"))
-            analysis = await handler(message) 
-            # Manejar resultado (logging + crear registros)
-            await self._handle_analysis_result(message, analysis)
+            phone = message.get("from") 
             
-            # Enviar respuesta automática al usuario
-            await self._send_response_to_user(message, analysis)
-            
-            return analysis
+            # Agregar mensaje al contexto de conversación
+            await self._add_to_conversation(phone, message)
+               
+            # Hay imagen reciente + texto/audio - procesar todo el contexto
+            analysis = await self._process_conversation_context(phone)
+            if analysis.informacion_completa:
+                    # Información completa - procesar y guardar
+                    await self._handle_analysis_result(message, analysis)
+                    await self._send_completion_confirmation(message, analysis)
+                            # Limpiar cache después de procesar
+                    self.conversation_cache[phone] = {"messages": [], "timestamp": datetime.now(), "waiting_for": None}
+            else:
+                await self._request_missing_fields_from_ai(phone, analysis) 
+
             
         except Exception as e:
-            # En caso de error, enviar mensaje de error al usuario
             logger.error(f"Error procesando mensaje completo: {e}")
             await self._send_error_response(message, str(e))
             raise
+
     
     async def _handle_analysis_result(self, message, analysis: AIAnalysis):
         """Maneja el resultado del análisis de IA"""
@@ -61,8 +70,7 @@ class MessageHandler:
             await self.sheets_service.log_message_with_analysis(message, analysis_dict)
             
             # Crear registros según tipo
-            if analysis.tipo_registro == "nuevo_rescate":
-                print("insertando nuevo_rescate")
+            if analysis.tipo_registro == "nuevo_rescate": 
                 await self.sheets_service.insert_sheet_from_dict(analysis.detalles, "ANIMAL")
                 await self.sheets_service.insert_sheet_from_dict(analysis.detalles, "POST")
                 await self.sheets_service.insert_sheet_from_dict(analysis.detalles,"EVENTO")
@@ -86,39 +94,6 @@ class MessageHandler:
             logger.error(f"Error manejando resultado de análisis: {e}")
             raise
     
-    async def _send_response_to_user(self, message: WhatsAppMessage, analysis: AIAnalysis):
-        """Envía respuesta automática al usuario basada en el análisis"""
-        try:
-            # Generar mensaje de confirmación
-            success_message = f"✅ Mensaje procesado: {analysis.tipo_registro}"
-                        
-            # Agregar detalles específicos según el tipo
-            if analysis.tipo_registro == "nuevo_rescate" and analysis.animal_nombre:
-                success_message += f"\n🐾 Animal: {analysis.animal_nombre}"
-            
-            elif analysis.tipo_registro == "cambio_estado":
-                estado = analysis.detalles.get("nuevo_estado", "")
-                if estado:
-                    success_message += f"\n📋 Estado: {estado}"
-            
-            elif analysis.tipo_registro == "visita_vet":
-                fecha = analysis.detalles.get("fecha", "")
-                if fecha:
-                    success_message += f"\n🏥 Fecha: {fecha}"
-            
-            elif analysis.tipo_registro == "gasto":
-                monto = analysis.detalles.get("monto", "")
-                if monto:
-                    success_message += f"\n💰 Monto: {monto}"
-            
-            # Enviar respuesta
-            await self.whatsapp_service.send_message(message.from_number, success_message)
-            
-            logger.info(f"Respuesta enviada a {message.from_number}: {analysis.tipo_registro}")
-            
-        except Exception as e:
-            logger.error(f"Error enviando respuesta al usuario: {e}")
-            # No re-lanzar error para no afectar el procesamiento principal
         
     async def _handle_text(self, message: WhatsAppMessage) -> AIAnalysis:
         """Handler para mensajes de texto"""
@@ -135,12 +110,7 @@ class MessageHandler:
             
         except Exception as e:
             logger.error(f"Error procesando mensaje de texto: {e}")
-            # Devolver análisis por defecto en caso de error
-            return AIAnalysis(
-                tipo_registro="consulta",
-                confianza=0.0,
-                detalles={"error": str(e), "mensaje_original": message.content}
-            )
+
     
     async def _handle_audio(self, message) -> AIAnalysis:
         """Handler para mensajes de audio"""
@@ -150,69 +120,161 @@ class MessageHandler:
             #text = await self.ai_service.audio_to_text(audio_file)
             audio_data = message["audio"]
             media_url = f"https://graph.facebook.com/v22.0/{audio_data['id']}"
-            media_mime_type = audio_data.get("mime_type", "audio/ogg")
             audio_bytes = await self.whatsapp_service.download_media(media_url)
             
             # Convertir audio a texto con Whisper directamente desde bytes
             text = await self.ai_service.audio_to_text(audio_bytes)
-            # Analizar el texto transcrito 
-            analysis = await self.ai_service.analyze_text(text)
             
-            # Agregar información de que fue audio original
-            analysis.detalles["audio_transcrito"] = text
-            analysis.detalles["tipo_original"] = "audio"
-            
-            return analysis
+            return text
             
         except Exception as e:
             logger.error(f"Error procesando mensaje de audio: {e}")
-            return AIAnalysis(
-                tipo_registro="consulta",
-                confianza=0.0,
-                detalles={"error": str(e), "tipo_original": "audio"}
-            )
+
     
-    async def _handle_image(self, message ) -> AIAnalysis:
+    async def _handle_image(self ,phone, image, combined_text) -> AIAnalysis: 
         """Handler para mensajes con imagen"""
         try:
             # Descargar imagen desde WhatsApp
-            image_data = message["image"]
+            image_data = image["image"]
             media_url = f"https://graph.facebook.com/v22.0/{image_data['id']}"
-            media_mime_type = image_data.get("mime_type", "image/jpeg")
             content = image_data.get("caption", "")
             image_file = await self.whatsapp_service.download_media(media_url)
-            
+            combined_text =content + " " + combined_text 
+
             if not image_file:
                 raise Exception("No se pudo descargar la imagen")
-            
             # Subir imagen a Google Drive
             #drive_url = await self.drive_service.upload_file(
             #    image_file, 
             #    f"rescate_{message.message_id}.jpg"
             #)
          #
-            # Analizar imagen + texto (si hay caption) con IA
-            #analysis = await self.ai_service.analyze_image_and_text(
-            #    image_url=drive_url,
-            #    text=message.content or ""
-            #)
-            #
-            ## Agregar información adicional
-            #analysis.detalles["imagen_url"] = drive_url
-            #analysis.detalles["tipo_original"] = "imagen"
-            #if message.content:
-            #    analysis.detalles["caption"] = message.content
-            #
-            #return analysis
+            #Analizar imagen + texto (si hay caption) con IA
+            analysis = await self.ai_service.analyze_image_and_text( image_bytes=image_file,text=combined_text)
+ 
+            return analysis
             
         except Exception as e:
             logger.error(f"Error procesando mensaje con imagen: {e}")
-            return AIAnalysis(
-                tipo_registro="consulta",
-                confianza=0.0,
-                detalles={
-                    "error": str(e), 
-                    "tipo_original": "imagen",
-                    "caption": message.content or ""
-                }
-            )
+        
+    # ===== FUNCIONES DE CONTEXTO DE CONVERSACIÓN =====
+    
+    async def _add_to_conversation(self, phone: str, message_data: dict):
+        """Agregar mensaje al cache de conversación"""
+        now = datetime.now()
+        
+        if phone not in self.conversation_cache:
+            self.conversation_cache[phone] = {
+                "messages": [],
+                "timestamp": now,
+                "waiting_for": None
+            }
+        
+        # Limpiar cache viejo (más de 5 minutos)
+        if now - self.conversation_cache[phone]["timestamp"] > timedelta(minutes=5):
+            self.conversation_cache[phone] = {
+                "messages": [],
+                "timestamp": now,
+                "waiting_for": None
+            }
+        
+        self.conversation_cache[phone]["messages"].append(message_data)
+        self.conversation_cache[phone]["timestamp"] = now
+        
+    async def _process_conversation_context(self, phone: str):
+        """Procesar todo el contexto de conversación acumulado"""        
+        messages = self.conversation_cache[phone]["messages"]
+        # Extraer componentes del contexto
+        text_content = ""
+        image_data = None
+        audio_content = ""
+        
+        for msg in messages:
+            if msg.get("type") == "text":
+                text_content += msg.get("text", {}).get("body", "") + " "
+            elif msg.get("type") == "image":
+                image_data = msg
+                text_content += image_data.get("caption", "")
+            elif msg.get("type") == "audio":
+                # Usar el handler de audio para procesar correctamente
+                audio_text = await self._handle_audio(msg) 
+                audio_content += audio_text + " "
+        
+        # Combinar todo el contenido textual
+        combined_text = (text_content + audio_content).strip()
+        
+        # Analizar según el tipo de contenido disponible
+        if image_data and combined_text:
+            # Imagen + texto/audio
+            analysis = await self._handle_image(phone, image_data, combined_text)
+        elif combined_text:
+            # Solo texto/audio
+            analysis=await self._handle_text(phone, combined_text)
+        elif image_data:
+            # Solo imagen - pedir descripción
+            analysis["informacion_completa"] = False
+
+        return analysis
+    
+    
+    async def _request_missing_fields_from_ai(self, phone: str, analysis: AIAnalysis):
+        """Pedir campos faltantes usando directamente la respuesta de la IA"""
+        try:
+                 
+            # Crear mensaje estructurado basado en lo que la IA identificó
+            tipo_registro = analysis.tipo_registro.replace("_", " ").upper()
+            
+            header = f"📋 **INFORMACIÓN INCOMPLETA - {tipo_registro}**\n\n" 
+            header += "🔍 **CAMPOS FALTANTES:**\n\n"
+            
+            # Convertir la lista de campos faltantes en un mensaje claro
+            missing_sections = []
+            for i, campo in enumerate(analysis.campos_faltantes, 1):
+                # Hacer más legible el nombre del campo
+                campo_legible = campo.replace("_", " ").title()
+                missing_sections.append(f"  {i}. **{campo_legible}**")
+            
+            campos_text = "\n".join(missing_sections)
+            
+            complete_message = header + campos_text 
+            
+            await self.whatsapp_service.send_message(phone, complete_message)
+            
+            # Marcar en cache que estamos esperando información específica
+            if phone in self.conversation_cache:
+                self.conversation_cache[phone]["waiting_for"] = analysis.tipo_registro
+                self.conversation_cache[phone]["partial_analysis"] = analysis
+                
+            logger.info(f"Solicitados {len(analysis.campos_faltantes)} campos faltantes para {phone}: {analysis.campos_faltantes}")
+            
+        except Exception as e:
+            logger.error(f"Error pidiendo campos faltantes: {e}")
+            await self.whatsapp_service.send_message(phone, 
+                "📝 Necesito más información para completar el registro. Por favor proporciona más detalles.")
+   
+    async def _send_completion_confirmation(self, phone: str, analysis: AIAnalysis):
+        """Enviar confirmación detallada cuando se completa la información"""
+        try:
+            tipo = analysis.tipo_registro.upper().replace("_", " ") 
+            detalles = analysis.detalles
+
+            mensaje=  f"""{tipo} +  REGISTRADO EXITOSAMENTE
+                    **Animal**: {analysis.animal_nombre}"""
+            for  detalle in detalles:
+                mensaje += f"\n• **{detalle.replace('_', ' ').title()}**: {detalles[detalle]}"
+            await self.whatsapp_service.send_message(phone, mensaje)
+        except Exception as e:
+            logger.error(f"Error enviando confirmación: {e}")
+            await self.whatsapp_service.send_message(phone, "✅ Información registrada exitosamente.")
+
+    async def _send_error_response(self, message, error_msg: str):
+        """Envía respuesta de error al usuario"""
+        try:
+            phone = message.get("from")
+            if phone:
+                await self.whatsapp_service.send_message(
+                    phone, 
+                    f"❌ Lo siento, hubo un error procesando tu mensaje:\n{error_msg}\n\nPor favor intenta nuevamente."
+                )
+        except Exception as e:
+            logger.error(f"Error enviando respuesta de error: {e}")
