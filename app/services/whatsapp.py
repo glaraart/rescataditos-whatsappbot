@@ -13,48 +13,46 @@ class WhatsAppService:
         self.access_token = settings.WHATSAPP_ACCESS_TOKEN
         self.verify_token = settings.WHATSAPP_VERIFY_TOKEN
     
-    
+    async def send_message(self, phone: str, complete_message: str) -> Dict[str, Any]:
+        """Send message to WhatsApp user (con log de error detallado)"""
+        try:
+            url = f"https://graph.facebook.com/v22.0/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
+            headers = {
+                "Authorization": f"Bearer {self.access_token}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "messaging_product": "whatsapp",
+                "to": phone,
+                "type": "text",
+                "text": {"body": complete_message}
+            }
 
-async def send_message(self, phone: str, complete_message: str) -> Dict[str, Any]:
-    """Send message to WhatsApp user (con log de error detallado)"""
-    try:
-        url = f"https://graph.facebook.com/v22.0/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
-        headers = {
-            "Authorization": f"Bearer {self.access_token}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "messaging_product": "whatsapp",
-            "to": phone,
-            "type": "text",
-            "text": {"body": complete_message}
-        }
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, headers=headers, json=payload)
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, headers=headers, json=payload)
+                # Si falla, loguear el cuerpo de error y lanzar excepción
+                if response.status_code >= 400:
+                    try:
+                        error_data = response.json()
+                    except Exception:
+                        error_data = response.text
+                    logger.error(
+                        f"Error enviando mensaje a {phone}: "
+                        f"status={response.status_code}, detalle={error_data}"
+                    )
+                    raise HTTPException(
+                        status_code=response.status_code,
+                        detail=error_data
+                    )
 
-            # Si falla, loguear el cuerpo de error y lanzar excepción
-            if response.status_code >= 400:
-                try:
-                    error_data = response.json()
-                except Exception:
-                    error_data = response.text
-                logger.error(
-                    f"Error enviando mensaje a {phone}: "
-                    f"status={response.status_code}, detalle={error_data}"
-                )
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail=error_data
-                )
+                result = response.json()
+                logger.info(f"Mensaje enviado a {phone}: {complete_message[:80]}...")
+                return result
 
-            result = response.json()
-            logger.info(f"Mensaje enviado a {phone}: {complete_message[:80]}...")
-            return result
-
-    except Exception as e:
-        logger.error(f"Excepción inesperada enviando mensaje a {phone}: {e}")
-        raise HTTPException(status_code=500, detail=f"Error enviando mensaje: {e}")
+        except Exception as e:
+            logger.error(f"Excepción inesperada enviando mensaje a {phone}: {e}")
+            raise HTTPException(status_code=500, detail=f"Error enviando mensaje: {e}")
 
     async def download_media(self, media_url: str) -> bytes:
         """Descarga un archivo multimedia desde una URL protegida (requiere access_token)"""
