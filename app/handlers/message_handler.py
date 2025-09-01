@@ -54,7 +54,7 @@ class MessageHandler:
             
         except Exception as e:
             logger.error(f"Error procesando mensaje completo: {e}")
-            await self._send_error_response(message, str(e))
+            await self._send_error_response(phone, str(e))
             raise
 
     
@@ -182,7 +182,7 @@ class MessageHandler:
         text_content = ""
         image_data = None
         audio_content = ""
-        
+        analysis = None
         for msg in messages:
             if msg.get("type") == "text":
                 text_content += msg.get("text", {}).get("body", "") + " "
@@ -261,12 +261,10 @@ class MessageHandler:
             logger.error(f"Error enviando confirmación: {e}")
             await self.whatsapp_service.send_message(phone, "✅ Información registrada exitosamente.")
 
-    async def _send_error_response(self, message, error_msg: str):
+    async def _send_error_response(self, phone, error_msg: str):
         """Envía respuesta de error al usuario"""
         try:
-            phone = message.get("from")
-            if phone:
-                await self.whatsapp_service.send_message(
+            await self.whatsapp_service.send_message(
                     phone, 
                     f"❌ Lo siento, hubo un error procesando tu mensaje:\n{error_msg}\n\nPor favor intenta nuevamente."
                 )
