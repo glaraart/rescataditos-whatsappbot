@@ -18,6 +18,7 @@ class WhatsAppService:
     async def send_message(self, phone: str, complete_message: str) -> Dict[str, Any]:
         """Send message to WhatsApp user"""
         try:
+            
             # URL de la API de WhatsApp Business
             url = f"https://graph.facebook.com/v22.0/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
             
@@ -30,7 +31,7 @@ class WhatsAppService:
             # Payload del mensaje
             payload = {
                 "messaging_product": "whatsapp",
-                "to": phone,
+                "to": int(phone),
                 "type": "text",
                 "text": {
                     "body": complete_message
