@@ -42,6 +42,7 @@ class MessageHandler:
                
             # Hay imagen reciente + texto/audio - procesar todo el contexto
             analysis = await self._process_conversation_context(phone)
+            print("analysis", analysis)
             if analysis.informacion_completa:
                     # Información completa - procesar y guardar
                     await self._handle_analysis_result(message, analysis)
@@ -206,6 +207,7 @@ class MessageHandler:
             analysis=await self._handle_text( combined_text)
         elif image_data:
             # Solo imagen - pedir descripción
+            print("Descripción de la imagen:")
             analysis["informacion_completa"] = False
 
         return analysis
