@@ -31,7 +31,7 @@ class WhatsAppService:
             # Payload del mensaje
             payload = {
                 "messaging_product": "whatsapp",
-                "to": int(phone),
+                "to": phone,
                 "type": "text",
                 "text": {
                     "body": complete_message
