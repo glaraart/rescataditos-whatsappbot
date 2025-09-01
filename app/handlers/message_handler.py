@@ -95,19 +95,13 @@ class MessageHandler:
             raise
     
         
-    async def _handle_text(self, message: WhatsAppMessage) -> AIAnalysis:
+    async def _handle_text(self, message: str) -> AIAnalysis:
         """Handler para mensajes de texto"""
         try:
-            # Determinar tipo y contenido
-            message_type = "text"  # Default
-            content = message["text"]["body"]
-            media_url = None
-            media_mime_type = None
-              
+          
             # Analizar texto con IA
-            analysis = await self.ai_service.analyze_text(content)
+            analysis = await self.ai_service.analyze_text(message)
             return analysis
-            
         except Exception as e:
             logger.error(f"Error procesando mensaje de texto: {e}")
 
@@ -209,7 +203,7 @@ class MessageHandler:
             analysis = await self._handle_image(phone, image_data, combined_text)
         elif combined_text:
             # Solo texto/audio
-            analysis=await self._handle_text(phone, combined_text)
+            analysis=await self._handle_text( combined_text)
         elif image_data:
             # Solo imagen - pedir descripción
             analysis["informacion_completa"] = False
