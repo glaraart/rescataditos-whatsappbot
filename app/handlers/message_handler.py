@@ -105,14 +105,19 @@ class MessageHandler:
             return analysis
         except Exception as e:
             logger.error(f"Error procesando mensaje de texto: {e}")
+            return AIAnalysis(
+                tipo_registro="error",
+                informacion_completa=False,
+                campos_faltantes=[],
+                confianza=0.0,
+                detalles={"error": str(e), "tipo_original": "text"}
+            )
 
     
-    async def _handle_audio(self, message) -> AIAnalysis:
-        """Handler para mensajes de audio"""
+    async def _handle_audio(self, message) -> str:
+        """Handler para mensajes de audio - retorna texto transcrito"""
         try:
-                                   
             # Convertir audio a texto con Whisper
-            #text = await self.ai_service.audio_to_text(audio_file)
             audio_data = message["audio"]
             media_url = f"https://graph.facebook.com/v22.0/{audio_data['id']}"
             audio_bytes = await self.whatsapp_service.download_media(media_url)
@@ -121,6 +126,10 @@ class MessageHandler:
             text = await self.ai_service.audio_to_text(audio_bytes)
             
             return text
+            
+        except Exception as e:
+            logger.error(f"Error procesando mensaje de audio: {e}")
+            return ""  # Retornar string vacío en caso de error
             
         except Exception as e:
             logger.error(f"Error procesando mensaje de audio: {e}")
@@ -182,8 +191,7 @@ class MessageHandler:
         # Extraer componentes del contexto
         text_content = ""
         image_data = None
-        audio_content = ""
-        analysis = None
+        audio_content = "" 
         for msg in messages:
             if msg.get("type") == "text":
                 text_content += msg.get("text", {}).get("body", "") + " "
@@ -208,7 +216,21 @@ class MessageHandler:
         elif image_data:
             # Solo imagen - pedir descripción
             print("Descripción de la imagen:")
-            analysis["informacion_completa"] = False
+            analysis = AIAnalysis(
+                tipo_registro="pendiente", 
+                informacion_completa=False,
+                campos_faltantes=["descripcion_imagen"],
+                detalles={"status": "waiting_for_description"}
+            )
+        else:
+            # Caso de fallback - no hay contenido procesable
+            analysis = AIAnalysis(
+                tipo_registro="error",
+                informacion_completa=False,
+                campos_faltantes=[],
+                confianza=0.0,
+                detalles={"error": "No hay contenido procesable en la conversación"}
+            )
 
         return analysis
     
