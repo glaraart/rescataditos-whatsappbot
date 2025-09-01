@@ -228,7 +228,6 @@ class MessageHandler:
                 tipo_registro="error",
                 informacion_completa=False,
                 campos_faltantes=[],
-                confianza=0.0,
                 detalles={"error": "No hay contenido procesable en la conversación"}
             )
 
