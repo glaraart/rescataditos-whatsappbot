@@ -188,6 +188,8 @@ class MessageHandler:
     async def _process_conversation_context(self, phone: str):
         """Procesar todo el contexto de conversación acumulado"""        
         messages = self.conversation_cache[phone]["messages"]
+
+        print(messages)
         # Extraer componentes del contexto
         text_content = ""
         image_data = None

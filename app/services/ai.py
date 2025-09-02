@@ -190,7 +190,7 @@ class AIService:
     async def analyze_image_and_text(self, image_bytes, text: str = "") -> AIAnalysis:
         """Analiza imagen y texto opcional usando GPT-4 Vision"""
         try: 
-            logger.info(f"Analizando texto: {text[:100]}...")
+            logger.info(f"Analizando imagen y texto: {text[:100]}...")
             content_aux = []
             # Prompt específico para imágenes de rescate
             system_prompt = self.rescue_prompt
