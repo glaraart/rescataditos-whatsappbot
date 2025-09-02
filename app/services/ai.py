@@ -37,10 +37,10 @@ class AIService:
             "tipo_registro": "nuevo_rescate", 
             "animal_nombre": "nombre del animal si se menciona o null",
             "informacion_completa": false,
-            "campos_faltantes": ["lista de campos que faltan o están vacíos"],
+            "campos_faltantes": ["lista de campos que faltan o están vacíos segun las reglas por tipo"],
             "detalles": { 
                 "tipo_animal": "perro o null si no se especifica",
-                "edad": "2 años o null si no se menciona",
+                "edad": "estimar en base a la foto si no se menciona",
                 "condicion_salud": "describir cómo fue recibido o null",
                 "color_pelo": [
                     { "color": "blanco", "porcentaje": 70 },
@@ -59,11 +59,11 @@ class AIService:
         REGLAS ESPECÍFICAS POR TIPO:
 
         NUEVO_RESCATE - Campos requeridos:
-        - tipo_animal (perro, gato, etc.)
-        - ubicacion (dirección específica)
+        - tipo_animal (extraer informacion de la foto o texto perro, gato, etc.)
+        - ubicacion (barrio o lugar)
         - condicion_salud (herido, enfermo, sano, etc.)
         - cambio_estado con ubicacion=1 (Refugio) y estado=1 (Perdido) como mínimo
-        
+        - color_pelo (describir colores y porcentajes) en base a la foto.
         CAMBIO_ESTADO - Solo incluir cambio_estado en detalles:
         - ubicacion: 1=Refugio, 2=Transito, 3=Veterinaria, 4=Hogar_adoptante
         - estado: 1=Perdido, 2=En_Tratamiento, 3=En_Adopción, 5=Adoptado, 6=Fallecido
