@@ -167,7 +167,7 @@ class MessageHandler:
         """Agregar mensaje al cache de conversación"""
         now = datetime.now()
         print("telefono", phone)
-        print("mensaje", message_data)
+        print("mensaje", self.conversation_cache)
         if phone not in self.conversation_cache:
             self.conversation_cache[phone] = {
                 "messages": [],
@@ -186,7 +186,7 @@ class MessageHandler:
         
         self.conversation_cache[phone]["messages"].append(message_data)
         self.conversation_cache[phone]["timestamp"] = now
-        print("mensajes",self.conversation_cache[phone]["messages"])
+        print("mensajes",self.conversation_cache)
     async def _process_conversation_context(self, phone: str):
         """Procesar todo el contexto de conversación acumulado"""        
         messages = self.conversation_cache[phone]["messages"]
