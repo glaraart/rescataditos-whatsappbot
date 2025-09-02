@@ -21,7 +21,7 @@ class AIService:
         # Prompt base para análisis de rescate
     
         self.rescue_prompt = """
-        Eres un asistente especializado en rescate de animales. Analiza el siguiente mensaje y clasifícalo según estos tipos:
+        Eres un asistente que ayuda a unas rescatistas a registrar informacion desde fotos y/o texto según estos tipos:
 
         TIPOS DISPONIBLES:
         - nuevo_rescate: Reporte de un animal que fue rescatado
@@ -190,6 +190,7 @@ class AIService:
     async def analyze_image_and_text(self, image_bytes, text: str = "") -> AIAnalysis:
         """Analiza imagen y texto opcional usando GPT-4 Vision"""
         try: 
+            logger.info(f"Analizando texto: {text[:100]}...")
             content_aux = []
             # Prompt específico para imágenes de rescate
             system_prompt = self.rescue_prompt
