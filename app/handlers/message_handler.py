@@ -166,25 +166,27 @@ class MessageHandler:
     async def _add_to_conversation(self, phone: str, message_data: dict):
         """Agregar mensaje al cache de conversación"""
         now = datetime.now()
-        
+        print("telefono", phone)
+        print("mensaje", message_data)
         if phone not in self.conversation_cache:
             self.conversation_cache[phone] = {
                 "messages": [],
                 "timestamp": now,
                 "waiting_for": None
             }
-        
-        # Limpiar cache viejo (más de 5 minutos)
+            print("no existe ",self.conversation_cache[phone] )
+        # Limpiar cache viejo (más de 5 minutos) 
         if now - self.conversation_cache[phone]["timestamp"] > timedelta(minutes=5):
             self.conversation_cache[phone] = {
                 "messages": [],
                 "timestamp": now,
                 "waiting_for": None
             }
+            print("limpia cache",self.conversation_cache[phone] )
         
         self.conversation_cache[phone]["messages"].append(message_data)
         self.conversation_cache[phone]["timestamp"] = now
-        
+        print("mensajes",self.conversation_cache[phone]["messages"])
     async def _process_conversation_context(self, phone: str):
         """Procesar todo el contexto de conversación acumulado"""        
         messages = self.conversation_cache[phone]["messages"]
