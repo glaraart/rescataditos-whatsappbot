@@ -45,7 +45,7 @@ class MessageHandler:
                     await self._handle_analysis_result(message, analysis)
                     await self._send_completion_confirmation(message, analysis)
                     # Limpiar cache después de procesar - eliminar registros del teléfono
-                    await self.sheets_service.delete_records(phone, "WHATSSAP")
+                    await self.sheets_service.delete_records(phone, "WHATSAPP")
             else:
                 await self._request_missing_fields_from_ai(phone, analysis) 
 
@@ -169,7 +169,7 @@ class MessageHandler:
                 "timestamp": now
             }         
         # Buscar si existe información previa del teléfono en WHATSSAP
-        await self.sheets_service.insert_sheet_from_dict(phone_info,"WHATSSAP")
+        await self.sheets_service.insert_sheet_from_dict(phone_info,"WHATSAPP")
 
 
     async def _process_conversation_context(self, phone: str):

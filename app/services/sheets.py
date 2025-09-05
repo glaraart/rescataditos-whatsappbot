@@ -118,10 +118,10 @@ class SheetsService:
             return False
         
     async def search_phone_in_whatsapp_sheet(self, phone: str) -> Optional[List[str]]:
-        """Buscar registro por teléfono en la hoja WHATSSAP y devolver lista de mensajes recientes (últimos 5 minutos)"""
+        """Buscar registro por teléfono en la hoja WHATSAPP y devolver lista de mensajes recientes (últimos 5 minutos)"""
         try:
-            # Obtener la hoja WHATSSAP
-            worksheet = self.get_worksheet("WHATSSAP")
+            # Obtener la hoja WHATSAPP
+            worksheet = self.get_worksheet("WHATSAPP")
             
             # Obtener todos los datos como lista de listas
             all_values = worksheet.get_all_values()
@@ -131,7 +131,7 @@ class SheetsService:
             data_rows = all_values[1:]  # Resto como datos
             
             if not data_rows:
-                logger.info("No hay datos en la hoja WHATSSAP (solo headers)")
+                logger.info("No hay datos en la hoja WHATSAPP (solo headers)")
                 return None
             
             # Crear DataFrame y limpiar datos
@@ -163,11 +163,11 @@ class SheetsService:
                         logger.info(f"Teléfono {phone} encontrado pero sin mensajes recientes (últimos 5 min)")
                         return None
                                     
-            logger.info(f"Teléfono {phone} no encontrado en la hoja WHATSSAP")
+            logger.info(f"Teléfono {phone} no encontrado en la hoja WHATSAPP")
             return None
             
         except Exception as e:
-            logger.error(f"Error buscando teléfono {phone} en WHATSSAP: {e}")
+            logger.error(f"Error buscando teléfono {phone} en WHATSAPP: {e}")
             return None
     
     async def delete_records_optimized(self, phone: str, worksheet_name: str) -> bool:
