@@ -201,7 +201,7 @@ class AIService:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": content_aux}  # ← USAR LA LISTA DINÁMICA
                 ],
-                max_tokens=800,  # Aumentar para múltiples imágenes
+                max_tokens=1000,  
                 response_format={"type":"json_object"}
             )
             print("respuesta ai" , response)
