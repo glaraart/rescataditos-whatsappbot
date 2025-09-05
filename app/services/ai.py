@@ -30,22 +30,22 @@ class AIService:
         - gasto: Registro de gastos relacionados con rescate
         - consulta: Pregunta general o información
 
-        IMPORTANTE: Extrae TODA la información disponible en el mensaje y/o en la foto. Si un campo no se menciona o no está claro, coloca null en lugar de inventar información.
+        IMPORTANTE: Extrae TODA la información disponible en el mensaje y/o en la foto.
 
         RESPONDE EN JSON con esta estructura exacta:
         {
             "tipo_registro": "nuevo_rescate", 
             "animal_nombre": "nombre del animal si se menciona o null",
             "informacion_completa": false,
-            "campos_faltantes": ["lista de campos que faltan o están vacíos segun las reglas por tipo"],
+            "campos_faltantes": ["lista de campos que faltan o los completaste con null segun las reglas por tipo"],
             "detalles": { 
                 "tipo_animal": "perro o null si no se especifica",
-                "edad": "estimar en base a la foto si no se menciona",
+                "edad": "estimar en base a la foto si no se menciona en el texto",
                 "condicion_salud": "describir cómo fue recibido o null",
                 "color_pelo": [
                     { "color": "blanco", "porcentaje": 70 },
                     { "color": "negro", "porcentaje": 30 }
-                ] o null si no se describe,
+                ] ,
                 "ubicacion": "lugar del rescate ejemplo Villa Fiorito",
                 "cambio_estado": { 
                     "ubicacion": 1,
@@ -64,7 +64,7 @@ class AIService:
         - condicion_salud (herido, enfermo, sano, etc.)
         - cambio_estado con ubicacion=1 (Refugio) y estado=1 (Perdido) como mínimo
         - color_pelo (describir colores y porcentajes) en base a la foto.
-        - edad (estimar en base a la foto si no se menciona)
+        - edad (estimar en base a la foto si no se menciona en el texto)
         CAMBIO_ESTADO - campos requeridos (se puede incluir en detalles cuando es un nuevo_rescate o solo cuendo es un cambio de estado de un animal ya rescatado):
         - ubicacion: 1=Refugio, 2=Transito, 3=Veterinaria, 4=Hogar_adoptante
         - estado: 1=Perdido, 2=En_Tratamiento, 3=En_Adopción, 5=Adoptado, 6=Fallecido
