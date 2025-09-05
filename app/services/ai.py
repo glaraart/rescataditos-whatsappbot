@@ -53,7 +53,7 @@ class AIService:
             }
         }
         REGLAS GENERALES
-        - Extrae TODO lo disponible de texto e imagen. No inventes hechos.
+        - Extrae TODO lo disponible de texto e imagen. 
         - Si un campo requerido no puede deducirse, devuélvelo como null Y agrega su nombre EXACTO en "campos_faltantes".
         - "informacion_completa" = true SOLO si todos los campos requeridos están presentes y no son null.
 
@@ -62,8 +62,6 @@ class AIService:
 
         EDAD:
         - Si la imagen permite, estima: para gatos usa categorías: "cachorro (0-6m)", "juvenil (6-12m)", "adulto (1-8a)", "senior (8+a)". Puedes devolver un estimado tipo "~2 años" si es claro.
-        - Si NO puedes estimar por calidad/ángulo/iluminación: usa null Y agrega "detalles.edad" en "campos_faltantes".
-
         COLOR_Pelo:
         - Describe como arreglo de 1 a 3 objetos { "color": "<nombre>", "porcentaje": <0-100> } sumando ≈100.
         - Si la imagen no permite ver colores (oscura/borrosa/sin animal visible): usa null Y agrega "detalles.color_pelo".
