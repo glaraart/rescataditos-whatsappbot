@@ -34,37 +34,41 @@ class AIService:
 
         RESPONDE EN JSON con esta estructura exacta:
         {
-            "tipo_registro": "nuevo_rescate", 
-            "animal_nombre": "nombre del animal si se menciona o null",
-            "informacion_completa": False Si cualquier campo requerido queda null o vacío de lo contrario True ,
-            "campos_faltantes": ["Si cualquier campo requerido queda null o vacío, debes incluir exactamente su nombre"],
-            "detalles": { 
-                "tipo_animal": "analiza la imagen para determinar el tipo de animal",
-                "edad": "Analizar la foto y estimar Edad basada en apariencia física, en meses o años segun corresponda, no dejar en null",
-                "condicion_salud": "describir cómo fue recibido o null",
-                "color_pelo": [
-                    { "color": "blanco", "porcentaje": 70 },
-                    { "color": "negro", "porcentaje": 30 }
-                ] ,
-                "ubicacion": "lugar del rescate ejemplo Villa Fiorito",
-                "cambio_estado": { 
-                    "ubicacion": 1,
-                    "estado": 2,
-                    "persona": "nombre de la persona o null",
-                    "relacion": 1
-                } 
+            "tipo_registro": "nuevo_rescate",
+            "animal_nombre": null,
+            "informacion_completa": false,
+            "campos_faltantes": [],
+            "detalles": {
+                "tipo_animal": null,
+                "edad": null,
+                "condicion_salud": null,
+                "color_pelo": null,
+                "ubicacion": null,
+                "cambio_estado": {
+                "ubicacion": 1,
+                "estado": 1,
+                "persona": null,
+                "relacion": 1
+                }
             }
         }
+        REGLAS GENERALES
+        - Extrae TODO lo disponible de texto e imagen. No inventes hechos.
+        - Si un campo requerido no puede deducirse, devuélvelo como null Y agrega su nombre EXACTO en "campos_faltantes".
+        - "informacion_completa" = true SOLO si todos los campos requeridos están presentes y no son null.
 
-        REGLAS ESPECÍFICAS POR TIPO:
+        REGLAS POR TIPO (NUEVO_RESCATE)
+        Requeridos: detalles.tipo_animal, detalles.ubicacion, detalles.condicion_salud, detalles.cambio_estado, detalles.color_pelo, detalles.edad.
 
-        NUEVO_RESCATE - Campos requeridos:
-        - tipo_animal (extraer informacion de la foto o texto perro, gato, etc.)
-        - ubicacion (barrio o lugar) donde fue encontrado
-        - condicion_salud (herido, enfermo, sano, etc.)
-        - cambio_estado con ubicacion=1 (Refugio) y estado=1 (Perdido) como mínimo
-        - color_pelo describir colores y porcentajes en base al analisis de la foto.
-        - edad siempre estimar en base a la foto. Para gatos: cachorro (0-6 meses), juvenil (6-12 meses), adulto (1-8 años), senior (8+ años)
+        EDAD:
+        - Si la imagen permite, estima: para gatos usa categorías: "cachorro (0-6m)", "juvenil (6-12m)", "adulto (1-8a)", "senior (8+a)". Puedes devolver un estimado tipo "~2 años" si es claro.
+        - Si NO puedes estimar por calidad/ángulo/iluminación: usa null Y agrega "detalles.edad" en "campos_faltantes".
+
+        COLOR_Pelo:
+        - Describe como arreglo de 1 a 3 objetos { "color": "<nombre>", "porcentaje": <0-100> } sumando ≈100.
+        - Si la imagen no permite ver colores (oscura/borrosa/sin animal visible): usa null Y agrega "detalles.color_pelo".
+        - Prefiere nombres simples: "gris", "blanco", "negro", "marrón", "atigrado", "bicolor", etc.
+
         CAMBIO_ESTADO - campos requeridos (se puede incluir en detalles cuando es un nuevo_rescate o solo cuendo es un cambio de estado de un animal ya rescatado):
         - ubicacion: 1=Refugio, 2=Transito, 3=Veterinaria, 4=Hogar_adoptante
         - estado: 1=Perdido, 2=En_Tratamiento, 3=En_Adopción, 5=Adoptado, 6=Fallecido
@@ -201,6 +205,8 @@ class AIService:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": content_aux}  # ← USAR LA LISTA DINÁMICA
                 ],
+                response_format={"type": "json_object"},
+                temperature=0.2,
                 max_tokens=800
             )
             print("respuesta ai" , response)
