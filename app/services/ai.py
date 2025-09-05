@@ -40,13 +40,13 @@ class AIService:
             "campos_faltantes": [],
             "detalles": {
                 "tipo_animal": null,
-                "edad": null,
+                "edad": no puede estar en null estimar la edad del animal en base a la foto ejemplo 2 meses 2 años,
                 "condicion_salud": null,
                 "color_pelo": [
-                 { "color": "color1", "porcentaje": 70 },
-                 { "color": "color2", "porcentaje": 30 }
+                 { "color": "color1", "porcentaje": porcentaje color1 },
+                 { "color": "color2", "porcentaje": porcentaje color2 }
                 ],
-                "ubicacion": null,
+                "ubicacion": "lugar donde fue encontrado",
                 "cambio_estado": {
                 "ubicacion": 1,
                 "estado": 1,
@@ -60,7 +60,7 @@ class AIService:
         - "informacion_completa" = true SOLO si todos los campos requeridos están presentes y no son null.
  
         EDAD:
-        -Estimá la edad del animal si es posible (siempre incluir 'años' o 'meses').
+        -Estimá la edad del animal en años o meses.
         COLOR_Pelo:
         - Describe como arreglo de 1 a 3 objetos { "color": "<nombre>", "porcentaje": <0-100> } sumando ≈100.
         - Prefiere nombres simples: "gris", "blanco", "negro", "marrón", "atigrado", "bicolor", etc.
