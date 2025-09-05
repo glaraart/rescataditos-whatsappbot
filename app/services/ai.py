@@ -63,8 +63,8 @@ class AIService:
         - ubicacion (barrio o lugar) donde fue encontrado
         - condicion_salud (herido, enfermo, sano, etc.)
         - cambio_estado con ubicacion=1 (Refugio) y estado=1 (Perdido) como mínimo
-        - color_pelo (describir colores y porcentajes) en base a la foto.
-        - edad (estimar en base a la foto si no se menciona en el texto)
+        - color_pelo describir colores y porcentajes en base a la foto.
+        - edad estimar en base a la foto si no se menciona en texto. Para gatos: cachorro (0-6 meses), juvenil (6-12 meses), adulto (1-8 años), senior (8+ años)
         CAMBIO_ESTADO - campos requeridos (se puede incluir en detalles cuando es un nuevo_rescate o solo cuendo es un cambio de estado de un animal ya rescatado):
         - ubicacion: 1=Refugio, 2=Transito, 3=Veterinaria, 4=Hogar_adoptante
         - estado: 1=Perdido, 2=En_Tratamiento, 3=En_Adopción, 5=Adoptado, 6=Fallecido
@@ -193,7 +193,7 @@ class AIService:
                 },
                 {"type": "text", "text": f"Mensaje: {text}"}
                 ]
-            
+            print ("contexto ai" ,content_aux)
             # Resto igual, pero usar 'content' en lugar del objeto hardcodeado
             response = await self.client.chat.completions.create(
                 model="gpt-4o",
@@ -201,22 +201,11 @@ class AIService:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": content_aux}  # ← USAR LA LISTA DINÁMICA
                 ],
-                max_tokens=800  # Aumentar para múltiples imágenes
+                max_tokens=800,  # Aumentar para múltiples imágenes
+                response_format={"type":"json_object"}
             )
             print("respuesta ai" , response)
-            result= response.choices[0].message.content.strip() 
-             
-            
-            # Limpiar backticks y bloques de código
-            result = result.strip()
-            if result.startswith("```json"):
-                result = result[7:]  # Remover ```json
-            elif result.startswith("```"):
-                result = result[3:]   # Remover ```
-            if result.endswith("```"):
-                result= result[:-3]  # Remover ``` del final
-            result = result.strip()
-            
+            result= response.choices[0].message.content.strip()             
             analysis_data = json.loads(result)
             
             # Crear análisis con información de imagen
@@ -225,6 +214,9 @@ class AIService:
                 animal_nombre=analysis_data.get("animal_nombre"),
                 detalles=analysis_data.get("detalles", {})
             )
+            # Agregar campos de validación como atributos adicionales
+            analysis.informacion_completa = analysis_data.get("informacion_completa", False)
+            analysis.campos_faltantes = analysis_data.get("campos_faltantes", [])
                     
             return analysis
             
