@@ -1,6 +1,7 @@
 # Message handler with composition approach
 import logging
 import asyncio
+import json
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
 from app.models.whatsapp import WhatsAppMessage, AIAnalysis
@@ -165,7 +166,7 @@ class MessageHandler:
         now = datetime.now()    
         phone_info= {
                 "phone": phone,
-                "messages": message_data,
+                "messages": json.dumps(message_data, ensure_ascii=False),  # Convertir a JSON string
                 "timestamp": now.strftime("%Y-%m-%d %H:%M:%S") 
             }         
         # Buscar si existe información previa del teléfono en WHATSSAP

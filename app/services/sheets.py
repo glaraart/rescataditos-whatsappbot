@@ -4,6 +4,7 @@ import pandas as pd
 from google.oauth2.service_account import Credentials
 from typing import List, Dict, Any, Optional
 import logging
+import json
 from datetime import datetime
 from app.config import settings
 from datetime import datetime, timedelta
@@ -152,14 +153,23 @@ class SheetsService:
                 recent_matches = exact_matches[exact_matches['timestamp_dt'] > five_minutes_ago]
                     
                 if not recent_matches.empty:
-                        # Extraer solo la columna 'messages' y convertir a lista
-                        messages = recent_matches['messages'].tolist()
+                    # Convertir los registros a lista de diccionarios
+                    records = []
+                    for _, row in recent_matches.iterrows():
+                        record = row.to_dict()
                         
-                        # Filtrar mensajes vacíos
-                        messages = [msg for msg in messages if msg and str(msg).strip()]
+                        # Intentar convertir 'messages' de JSON string a dict si es posible
+                        if 'messages' in record and isinstance(record['messages'], str):
+                            try:
+                                record['messages'] = json.loads(record['messages'])
+                            except (json.JSONDecodeError, TypeError):
+                                # Si no es JSON válido, mantener como string
+                                pass
                         
-                        logger.info(f"Teléfono {phone} encontrado con {len(messages)} mensajes recientes (últimos 5 min)")
-                        return messages
+                        records.append(record)
+                    
+                    logger.info(f"Teléfono {phone} encontrado con {len(records)} mensajes recientes (últimos 5 min)")
+                    return records
                 else:
                         logger.info(f"Teléfono {phone} encontrado pero sin mensajes recientes (últimos 5 min)")
                         return None
