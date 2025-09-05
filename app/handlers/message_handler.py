@@ -166,7 +166,7 @@ class MessageHandler:
         phone_info= {
                 "phone": phone,
                 "messages": message_data,
-                "timestamp": now
+                "timestamp": now.strftime("%Y-%m-%d %H:%M:%S") 
             }         
         # Buscar si existe información previa del teléfono en WHATSSAP
         await self.sheets_service.insert_sheet_from_dict(phone_info,"WHATSAPP")

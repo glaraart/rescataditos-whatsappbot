@@ -148,6 +148,7 @@ class SheetsService:
                 now = datetime.now()
                 five_minutes_ago = now - timedelta(minutes=5)
                 # Filtrar por timestamp reciente
+                exact_matches['timestamp_dt'] = pd.to_datetime(exact_matches['timestamp'])
                 recent_matches = exact_matches[exact_matches['timestamp_dt'] > five_minutes_ago]
                     
                 if not recent_matches.empty:
