@@ -40,7 +40,7 @@ class AIService:
             "campos_faltantes": [],
             "detalles": {
                 "tipo_animal": null,
-                "edad": no puede estar en null estimar la edad del animal en base a la foto ejemplo 2 meses 2 años,
+                "edad": no puede estar en null estimar la edad del animal en base a la foto ejemplo 3 meses 8 años,
                 "condicion_salud": null,
                 "color_pelo": [
                  { "color": "color1", "porcentaje": porcentaje color1 },
@@ -128,7 +128,7 @@ class AIService:
             )
             
             # Agregar campos de validación como atributos adicionales
-            analysis.informacion_completa = analysis_data.get("informacion_completa", False)
+            analysis.informacion_completa = analysis_data.get("informacion_completa")
             analysis.campos_faltantes = analysis_data.get("campos_faltantes", [])
             
             return analysis
@@ -211,7 +211,7 @@ class AIService:
                 detalles=analysis_data.get("detalles", {})
             )
             # Agregar campos de validación como atributos adicionales
-            analysis.informacion_completa = analysis_data.get("informacion_completa", False)
+            analysis.informacion_completa = analysis_data.get("informacion_completa")
             analysis.campos_faltantes = analysis_data.get("campos_faltantes", [])
                     
             return analysis
