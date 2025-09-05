@@ -1,10 +1,12 @@
 # Google Sheets API service
 import gspread
+import pandas as pd
 from google.oauth2.service_account import Credentials
 from typing import List, Dict, Any, Optional
 import logging
 from datetime import datetime
 from app.config import settings
+from datetime import datetime, timedelta
 import os
 logger = logging.getLogger(__name__)
 
@@ -113,4 +115,90 @@ class SheetsService:
             ]) 
         except Exception as e:
             logger.error(f"Error updating sheet: {str(e)}")
+            return False
+        
+    async def search_phone_in_whatsapp_sheet(self, phone: str) -> Optional[List[str]]:
+        """Buscar registro por teléfono en la hoja WHATSSAP y devolver lista de mensajes recientes (últimos 5 minutos)"""
+        try:
+            # Obtener la hoja WHATSSAP
+            worksheet = self.get_worksheet("WHATSSAP")
+            
+            # Obtener todos los datos como lista de listas
+            all_values = worksheet.get_all_values()
+            
+            # Crear DataFrame con pandas
+            headers = all_values[0]  # Primera fila como headers
+            data_rows = all_values[1:]  # Resto como datos
+            
+            if not data_rows:
+                logger.info("No hay datos en la hoja WHATSSAP (solo headers)")
+                return None
+            
+            # Crear DataFrame y limpiar datos
+            df = pd.DataFrame(data_rows, columns=headers)
+            
+            # Limpiar espacios en blanco de los headers
+            df.columns = df.columns.str.strip()
+                    
+            # Buscar coincidencias exactas por teléfono
+            exact_matches = df[df['phone'] == phone]
+            
+            if not exact_matches.empty:
+                # Calcular fecha límite (ahora - 5 minutos)
+                now = datetime.now()
+                five_minutes_ago = now - timedelta(minutes=5)
+                # Filtrar por timestamp reciente
+                recent_matches = exact_matches[exact_matches['timestamp_dt'] > five_minutes_ago]
+                    
+                if not recent_matches.empty:
+                        # Extraer solo la columna 'messages' y convertir a lista
+                        messages = recent_matches['messages'].tolist()
+                        
+                        # Filtrar mensajes vacíos
+                        messages = [msg for msg in messages if msg and str(msg).strip()]
+                        
+                        logger.info(f"Teléfono {phone} encontrado con {len(messages)} mensajes recientes (últimos 5 min)")
+                        return messages
+                else:
+                        logger.info(f"Teléfono {phone} encontrado pero sin mensajes recientes (últimos 5 min)")
+                        return None
+                                    
+            logger.info(f"Teléfono {phone} no encontrado en la hoja WHATSSAP")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error buscando teléfono {phone} en WHATSSAP: {e}")
+            return None
+    
+    async def delete_records_optimized(self, phone: str, worksheet_name: str) -> bool:
+        """Versión optimizada de delete_records"""
+        try:
+            worksheet = self.get_worksheet(worksheet_name)
+            all_values = worksheet.get_all_values()
+            
+            # Crear DataFrame
+            df = pd.DataFrame(all_values[1:], columns=[col.strip() for col in all_values[0]])
+                        
+            # Filtrar registros
+            initial_count = len(df)
+            df_filtered = df[df['phone'] != phone]
+            deleted_count = initial_count - len(df_filtered)
+            
+            if deleted_count == 0:
+                logger.info(f"No se encontraron registros del teléfono {phone}")
+                return True
+            
+            # Usar batch_update para mejor rendimiento
+            headers = all_values[0]
+            new_data = [headers] + df_filtered.values.tolist()
+            
+            # Limpiar y actualizar en una sola operación
+            worksheet.clear()
+            worksheet.update(new_data)
+            
+            logger.info(f"Eliminados {deleted_count} registros del teléfono {phone}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error eliminando registros: {e}")
             return False

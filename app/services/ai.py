@@ -46,7 +46,7 @@ class AIService:
                     { "color": "blanco", "porcentaje": 70 },
                     { "color": "negro", "porcentaje": 30 }
                 ] o null si no se describe,
-                "ubicacion": "lugar del rescate específico o null",
+                "ubicacion": "lugar del rescate ejemplo Villa Fiorito",
                 "cambio_estado": { 
                     "ubicacion": 1,
                     "estado": 2,
@@ -60,7 +60,7 @@ class AIService:
 
         NUEVO_RESCATE - Campos requeridos:
         - tipo_animal (extraer informacion de la foto o texto perro, gato, etc.)
-        - ubicacion (barrio o lugar)
+        - ubicacion (barrio o lugar) es lo mismo que ubicacion especifica de donde fue encontrado
         - condicion_salud (herido, enfermo, sano, etc.)
         - cambio_estado con ubicacion=1 (Refugio) y estado=1 (Perdido) como mínimo
         - color_pelo (describir colores y porcentajes) en base a la foto.

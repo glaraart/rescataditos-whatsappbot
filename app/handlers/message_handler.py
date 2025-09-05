@@ -20,10 +20,7 @@ class MessageHandler:
         self.ai_service = AIService()
         self.sheets_service = SheetsService()
         self.whatsapp_service = WhatsAppService()
-        #self.drive_service = DriveService()
-        # Cache para mantener contexto de conversación
-        self.conversation_cache = {}  # {phone_number: {messages: [], timestamp: datetime, waiting_for: str}}
-        self.WAIT_TIME = 300  # segundos para esperar mensajes relacionados        
+        #self.drive_service = DriveService()      
         # Registry de handlers por tipo de mensaje
         self.handlers = {
             "text": self._handle_text,
@@ -47,8 +44,8 @@ class MessageHandler:
                     # Información completa - procesar y guardar
                     await self._handle_analysis_result(message, analysis)
                     await self._send_completion_confirmation(message, analysis)
-                            # Limpiar cache después de procesar
-                    self.conversation_cache[phone] = {"messages": [], "timestamp": datetime.now(), "waiting_for": None}
+                    # Limpiar cache después de procesar - eliminar registros del teléfono
+                    await self.sheets_service.delete_records(phone, "WHATSSAP")
             else:
                 await self._request_missing_fields_from_ai(phone, analysis) 
 
@@ -165,38 +162,25 @@ class MessageHandler:
     
     async def _add_to_conversation(self, phone: str, message_data: dict):
         """Agregar mensaje al cache de conversación"""
-        now = datetime.now()
-        print("telefono", phone)
-        print("mensaje", self.conversation_cache)
-        if phone not in self.conversation_cache:
-            self.conversation_cache[phone] = {
-                "messages": [],
-                "timestamp": now,
-                "waiting_for": None
-            }
-            print("no existe ",self.conversation_cache[phone] )
-        # Limpiar cache viejo (más de 5 minutos) 
-        if now - self.conversation_cache[phone]["timestamp"] > timedelta(minutes=5):
-            self.conversation_cache[phone] = {
-                "messages": [],
-                "timestamp": now,
-                "waiting_for": None
-            }
-            print("limpia cache",self.conversation_cache[phone] )
-        
-        self.conversation_cache[phone]["messages"].append(message_data)
-        self.conversation_cache[phone]["timestamp"] = now
-        print("mensajes",self.conversation_cache)
+        now = datetime.now()    
+        phone_info= {
+                "phone": phone,
+                "messages": message_data,
+                "timestamp": now
+            }         
+        # Buscar si existe información previa del teléfono en WHATSSAP
+        await self.sheets_service.insert_sheet_from_dict(phone_info,"WHATSSAP")
+
+
     async def _process_conversation_context(self, phone: str):
         """Procesar todo el contexto de conversación acumulado"""        
-        messages = self.conversation_cache[phone]["messages"]
-
-        print(messages)
+        phone_info = await self.sheets_service.search_phone_in_whatsapp_sheet(phone)  
+        print(phone_info)
         # Extraer componentes del contexto
         text_content = ""
         image_data = None
         audio_content = "" 
-        for msg in messages:
+        for msg in phone_info:
             if msg.get("type") == "text":
                 text_content += msg.get("text", {}).get("body", "") + " "
             elif msg.get("type") == "image":
@@ -223,8 +207,7 @@ class MessageHandler:
             analysis = AIAnalysis(
                 tipo_registro="pendiente", 
                 informacion_completa=False,
-                campos_faltantes=["descripcion_imagen"],
-                detalles={"status": "waiting_for_description"}
+                campos_faltantes=["descripcion_imagen"]
             )
         else:
             # Caso de fallback - no hay contenido procesable
@@ -260,12 +243,7 @@ class MessageHandler:
             complete_message = header + campos_text 
             
             await self.whatsapp_service.send_message(phone, complete_message)
-            
-            # Marcar en cache que estamos esperando información específica
-            if phone in self.conversation_cache:
-                self.conversation_cache[phone]["waiting_for"] = analysis.tipo_registro
-                self.conversation_cache[phone]["partial_analysis"] = analysis
-                
+             
             logger.info(f"Solicitados {len(analysis.campos_faltantes)} campos faltantes para {phone}: {analysis.campos_faltantes}")
             
         except Exception as e:

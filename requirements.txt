@@ -30,4 +30,8 @@ google-cloud-logging==3.8.0
 # Security
 cryptography==41.0.7
 
+# Audio processing
 pydub==0.25.1
+
+# Data processing
+pandas==2.1.4
