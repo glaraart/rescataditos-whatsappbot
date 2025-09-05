@@ -153,23 +153,20 @@ class SheetsService:
                 recent_matches = exact_matches[exact_matches['timestamp_dt'] > five_minutes_ago]
                     
                 if not recent_matches.empty:
-                    # Convertir los registros a lista de diccionarios
-                    records = []
-                    for _, row in recent_matches.iterrows():
-                        record = row.to_dict()
-                        
-                        # Intentar convertir 'messages' de JSON string a dict si es posible
-                        if 'messages' in record and isinstance(record['messages'], str):
-                            try:
-                                record['messages'] = json.loads(record['messages'])
-                            except (json.JSONDecodeError, TypeError):
-                                # Si no es JSON válido, mantener como string
-                                pass
-                        
-                        records.append(record)
+                    messages = recent_matches['messages'].tolist()
                     
-                    logger.info(f"Teléfono {phone} encontrado con {len(records)} mensajes recientes (últimos 5 min)")
-                    return records
+                    # Convertir de JSON string a dict si es necesario
+                    processed_messages = []
+                    for msg in messages:
+                        if isinstance(msg, str):
+                            try:
+                                processed_messages.append(json.loads(msg))
+                            except (json.JSONDecodeError, TypeError):
+                                processed_messages.append(msg)
+                        else:
+                            processed_messages.append(msg)
+                    
+                    return processed_messages
                 else:
                         logger.info(f"Teléfono {phone} encontrado pero sin mensajes recientes (últimos 5 min)")
                         return None
