@@ -21,7 +21,7 @@ class AIService:
         # Prompt base para análisis de rescate
     
         self.rescue_prompt = """
-        Eres un asistente que ayuda a unas rescatistas a registrar informacion desde fotos y/o texto según estos tipos:
+        Eres un asistente que ayuda a unas rescatistas a registrar informacion analizando fotos de animales y/o texto según estos tipos:
 
         TIPOS DISPONIBLES:
         - nuevo_rescate: Reporte de un animal que fue rescatado
@@ -42,7 +42,10 @@ class AIService:
                 "tipo_animal": null,
                 "edad": null,
                 "condicion_salud": null,
-                "color_pelo": null,
+                "color_pelo": [
+                 { "color": "color1", "porcentaje": 70 },
+                 { "color": "color2", "porcentaje": 30 }
+                ],
                 "ubicacion": null,
                 "cambio_estado": {
                 "ubicacion": 1,
@@ -57,7 +60,7 @@ class AIService:
         - "informacion_completa" = true SOLO si todos los campos requeridos están presentes y no son null.
  
         EDAD:
-        - Si la imagen permite,estimar la edad del animal. Por ejemplo puedes devolver un estimado tipo "~2 años".
+        -Estimá la edad del animal si es posible (siempre incluir 'años' o 'meses').
         COLOR_Pelo:
         - Describe como arreglo de 1 a 3 objetos { "color": "<nombre>", "porcentaje": <0-100> } sumando ≈100.
         - Prefiere nombres simples: "gris", "blanco", "negro", "marrón", "atigrado", "bicolor", etc.
