@@ -201,7 +201,7 @@ class AIService:
                 })
             
             # Resto igual, pero usar 'content' en lugar del objeto hardcodeado
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
                     {"role": "system", "content": system_prompt},
