@@ -120,6 +120,7 @@ class SheetsService:
     def search_phone_in_whatsapp_sheet(self, phone: str) -> Optional[List[str]]:
         """Buscar registro por teléfono en la hoja WHATSAPP y devolver lista de mensajes recientes (últimos 5 minutos)"""
         try:
+            logger.info(f"Buscando teléfono {phone} en hoja WHATSAPP")
             # Obtener la hoja WHATSAPP
             worksheet = self.get_worksheet("WHATSAPP")
 
