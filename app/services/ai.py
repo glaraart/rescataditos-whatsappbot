@@ -209,6 +209,7 @@ class AIService:
                 ],
                 max_tokens=800  # Aumentar para múltiples imágenes
             )
+            print("respuesta ai" , response)
             result= response.choices[0].message.content.strip() 
              
             
