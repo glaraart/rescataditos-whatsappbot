@@ -53,18 +53,13 @@ class AIService:
             }
         }
         REGLAS GENERALES
-        - Extrae TODO lo disponible de texto e imagen. 
-        - Si un campo requerido no puede deducirse, devuélvelo como null Y agrega su nombre EXACTO en "campos_faltantes".
+        - Extrae TODO lo disponible de texto e imagen.  
         - "informacion_completa" = true SOLO si todos los campos requeridos están presentes y no son null.
-
-        REGLAS POR TIPO (NUEVO_RESCATE)
-        Requeridos: detalles.tipo_animal, detalles.ubicacion, detalles.condicion_salud, detalles.cambio_estado, detalles.color_pelo, detalles.edad.
-
+ 
         EDAD:
-        - Si la imagen permite, estima: para gatos usa categorías: "cachorro (0-6m)", "juvenil (6-12m)", "adulto (1-8a)", "senior (8+a)". Puedes devolver un estimado tipo "~2 años" si es claro.
+        - Si la imagen permite,estimar la edad del animal. Por ejemplo puedes devolver un estimado tipo "~2 años".
         COLOR_Pelo:
         - Describe como arreglo de 1 a 3 objetos { "color": "<nombre>", "porcentaje": <0-100> } sumando ≈100.
-        - Si la imagen no permite ver colores (oscura/borrosa/sin animal visible): usa null Y agrega "detalles.color_pelo".
         - Prefiere nombres simples: "gris", "blanco", "negro", "marrón", "atigrado", "bicolor", etc.
 
         CAMBIO_ESTADO - campos requeridos (se puede incluir en detalles cuando es un nuevo_rescate o solo cuendo es un cambio de estado de un animal ya rescatado):
@@ -91,10 +86,6 @@ class AIService:
         CONSULTA - Campos opcionales:
         - tema (sobre qué pregunta)
         - respuesta_sugerida (si puedes dar una respuesta básica)
-
-        VALIDACIÓN:
-        - Marca "informacion_completa": true solo si TODOS los campos requeridos tienen valores válidos (no null)
-        - En "campos_faltantes" lista exactamente qué información específica falta
         
         EJEMPLOS:
         Mensaje: "Encontré un perro en Villa Fiorita"
