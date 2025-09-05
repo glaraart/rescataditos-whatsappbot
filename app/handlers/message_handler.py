@@ -36,7 +36,7 @@ class MessageHandler:
             phone = message.get("from") 
             
             # Agregar mensaje al contexto de conversación
-            await self._add_to_conversation(phone, message)
+            self._add_to_conversation(phone, message)
             print("agregado")
             # Hay imagen reciente + texto/audio - procesar todo el contexto
             analysis = await self._process_conversation_context(phone)
@@ -161,7 +161,7 @@ class MessageHandler:
         
     # ===== FUNCIONES DE CONTEXTO DE CONVERSACIÓN =====
     
-    async def _add_to_conversation(self, phone: str, message_data: dict):
+    def _add_to_conversation(self, phone: str, message_data: dict):
         """Agregar mensaje al cache de conversación"""
         now = datetime.now()    
         phone_info= {
@@ -170,7 +170,7 @@ class MessageHandler:
                 "timestamp": now.strftime("%Y-%m-%d %H:%M:%S") 
             }         
         # Buscar si existe información previa del teléfono en WHATSSAP
-        await self.sheets_service.insert_sheet_from_dict(phone_info,"WHATSAPP")
+        self.sheets_service.insert_sheet_from_dict(phone_info,"WHATSAPP")
 
 
     async def _process_conversation_context(self, phone: str):
