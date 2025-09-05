@@ -195,10 +195,12 @@ class AIService:
             # Prompt específico para imágenes de rescate
             system_prompt = self.rescue_prompt
             base64_image = base64.b64encode(image_bytes).decode()
-            content_aux.append({
-                    "type": "image_url",
+            content_aux=[
+                {   "type": "image_url",
                     "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
-                })
+                },
+                {"type": "text", "text": f"Mensaje: {text}"}
+                ]
             
             # Resto igual, pero usar 'content' en lugar del objeto hardcodeado
             response = await self.client.chat.completions.create(
