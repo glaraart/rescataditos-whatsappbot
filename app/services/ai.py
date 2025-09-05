@@ -40,7 +40,7 @@ class AIService:
             "campos_faltantes": ["Si cualquier campo requerido queda null o vacío, debes incluir exactamente su nombre"],
             "detalles": { 
                 "tipo_animal": "analiza la imagen para determinar el tipo de animal",
-                "edad": "Analizar la foto y estimar Edad basada en apariencia física, en meses o años segun corresponda",
+                "edad": "Analizar la foto y estimar Edad basada en apariencia física, en meses o años segun corresponda, no dejar en null",
                 "condicion_salud": "describir cómo fue recibido o null",
                 "color_pelo": [
                     { "color": "blanco", "porcentaje": 70 },
