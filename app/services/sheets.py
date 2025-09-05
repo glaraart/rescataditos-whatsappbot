@@ -122,7 +122,7 @@ class SheetsService:
         try:
             # Obtener la hoja WHATSAPP
             worksheet = self.get_worksheet("WHATSAPP")
-            
+
             # Obtener todos los datos como lista de listas
             all_values = worksheet.get_all_values()
             
