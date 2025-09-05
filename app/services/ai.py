@@ -95,8 +95,7 @@ class AIService:
         VALIDACIÓN:
         - Marca "informacion_completa": true solo si TODOS los campos requeridos tienen valores válidos (no null)
         - En "campos_faltantes" lista exactamente qué información específica falta
-        - NO inventes información que no esté en el mensaje
-
+        
         EJEMPLOS:
         Mensaje: "Encontré un perro en Villa Fiorita"
         → Falta: condicion_salud, edad, color_pelo, cambio_estado completo
