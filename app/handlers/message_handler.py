@@ -37,7 +37,7 @@ class MessageHandler:
             
             # Agregar mensaje al contexto de conversación
             await self._add_to_conversation(phone, message)
-               
+            print("agregado")
             # Hay imagen reciente + texto/audio - procesar todo el contexto
             analysis = await self._process_conversation_context(phone)
             print("analysis", analysis)
