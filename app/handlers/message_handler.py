@@ -46,7 +46,7 @@ class MessageHandler:
                     await self._handle_analysis_result(message, analysis)
                     await self._send_completion_confirmation(message, analysis)
                     # Limpiar cache después de procesar - eliminar registros del teléfono
-                    await self.sheets_service.delete_records(phone, "WHATSAPP")
+                    self.sheets_service.delete_records_optimized(phone, "WHATSAPP")
             else:
                 await self._request_missing_fields_from_ai(phone, analysis) 
 
@@ -175,7 +175,7 @@ class MessageHandler:
 
     async def _process_conversation_context(self, phone: str):
         """Procesar todo el contexto de conversación acumulado"""        
-        phone_info = await self.sheets_service.search_phone_in_whatsapp_sheet(phone)  
+        phone_info = self.sheets_service.search_phone_in_whatsapp_sheet(phone)  
         print(phone_info)
         # Extraer componentes del contexto
         text_content = ""

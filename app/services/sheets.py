@@ -78,8 +78,7 @@ class SheetsService:
             success = True
             for item in data:
                 if not self.insert_sheet_from_dict(item, worksheet):
-                    success = False
-            return success
+                  return
         
         try:
             headers = self.get_headers(worksheet)
@@ -93,11 +92,11 @@ class SheetsService:
                 # Append the new row
             worksheet.append_row(new_row)
             print("insertado ")
-            return True
+            return 
             
         except Exception as e:
             logger.error(f"Error updating sheet: {str(e)}")
-            return False
+            return 
     
     def log_message_with_analysis(self, message_data, analysis_result):
         """Log completo: mensaje + análisis de IA"""
@@ -118,7 +117,7 @@ class SheetsService:
             logger.error(f"Error updating sheet: {str(e)}")
             return False
         
-    async def search_phone_in_whatsapp_sheet(self, phone: str) -> Optional[List[str]]:
+    def search_phone_in_whatsapp_sheet(self, phone: str) -> Optional[List[str]]:
         """Buscar registro por teléfono en la hoja WHATSAPP y devolver lista de mensajes recientes (últimos 5 minutos)"""
         try:
             # Obtener la hoja WHATSAPP
@@ -181,7 +180,7 @@ class SheetsService:
             logger.error(f"Error buscando teléfono {phone} en WHATSAPP: {e}")
             return None
     
-    async def delete_records_optimized(self, phone: str, worksheet_name: str) -> bool:
+    def delete_records_optimized(self, phone: str, worksheet_name: str) -> bool:
         """Versión optimizada de delete_records"""
         try:
             worksheet = self.get_worksheet(worksheet_name)
