@@ -30,7 +30,7 @@ class AIService:
         - gasto: Registro de gastos relacionados con rescate
         - consulta: Pregunta general o información
 
-        IMPORTANTE: Extrae TODA la información disponible en el mensaje. Si un campo no se menciona o no está claro, coloca null en lugar de inventar información.
+        IMPORTANTE: Extrae TODA la información disponible en el mensaje y/o en la foto. Si un campo no se menciona o no está claro, coloca null en lugar de inventar información.
 
         RESPONDE EN JSON con esta estructura exacta:
         {
@@ -52,7 +52,7 @@ class AIService:
                     "estado": 2,
                     "persona": "nombre de la persona o null",
                     "relacion": 1
-                } o null según corresponda
+                } 
             }
         }
 
@@ -60,11 +60,12 @@ class AIService:
 
         NUEVO_RESCATE - Campos requeridos:
         - tipo_animal (extraer informacion de la foto o texto perro, gato, etc.)
-        - ubicacion (barrio o lugar) es lo mismo que ubicacion especifica de donde fue encontrado
+        - ubicacion (barrio o lugar) donde fue encontrado
         - condicion_salud (herido, enfermo, sano, etc.)
         - cambio_estado con ubicacion=1 (Refugio) y estado=1 (Perdido) como mínimo
         - color_pelo (describir colores y porcentajes) en base a la foto.
-        CAMBIO_ESTADO - Solo incluir cambio_estado en detalles:
+        - edad (estimar en base a la foto si no se menciona)
+        CAMBIO_ESTADO - campos requeridos (se puede incluir en detalles cuando es un nuevo_rescate o solo cuendo es un cambio de estado de un animal ya rescatado):
         - ubicacion: 1=Refugio, 2=Transito, 3=Veterinaria, 4=Hogar_adoptante
         - estado: 1=Perdido, 2=En_Tratamiento, 3=En_Adopción, 5=Adoptado, 6=Fallecido
         - persona: nombre o cuenta de quien adopta/transita
@@ -93,7 +94,6 @@ class AIService:
         - Marca "informacion_completa": true solo si TODOS los campos requeridos tienen valores válidos (no null)
         - En "campos_faltantes" lista exactamente qué información específica falta
         - NO inventes información que no esté en el mensaje
-        - Sé específico: en lugar de "ubicacion" pon "ubicacion_especifica_del_rescate"
 
         EJEMPLOS:
         Mensaje: "Encontré un perro en Villa Fiorita"
@@ -231,13 +231,7 @@ class AIService:
                 animal_nombre=analysis_data.get("animal_nombre"),
                 detalles=analysis_data.get("detalles", {})
             )
-            
-            # Agregar metadata de imagen
-            analysis.detalles["imagen_analizada"] = True
-            analysis.detalles["imagen_url"] = image_bytes
-            if text:
-                analysis.detalles["texto_adicional"] = text
-            
+                    
             return analysis
             
         except json.JSONDecodeError as e:
