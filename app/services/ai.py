@@ -40,7 +40,7 @@ class AIService:
             "campos_faltantes": ["Si cualquier campo requerido queda null o vacío, debes incluir exactamente su nombre"],
             "detalles": { 
                 "tipo_animal": "perro o null si no se especifica",
-                "edad": "estimar en base a la foto si no se menciona en el texto, en meses o años segun corresponda",
+                "edad": "estimar en base a la foto o el texto, en meses o años segun corresponda",
                 "condicion_salud": "describir cómo fue recibido o null",
                 "color_pelo": [
                     { "color": "blanco", "porcentaje": 70 },
@@ -64,7 +64,7 @@ class AIService:
         - condicion_salud (herido, enfermo, sano, etc.)
         - cambio_estado con ubicacion=1 (Refugio) y estado=1 (Perdido) como mínimo
         - color_pelo describir colores y porcentajes en base a la foto.
-        - edad estimar en base a la foto si no se menciona en texto. Para gatos: cachorro (0-6 meses), juvenil (6-12 meses), adulto (1-8 años), senior (8+ años)
+        - edad estimar en base a la foto o el texto. Para gatos: cachorro (0-6 meses), juvenil (6-12 meses), adulto (1-8 años), senior (8+ años)
         CAMBIO_ESTADO - campos requeridos (se puede incluir en detalles cuando es un nuevo_rescate o solo cuendo es un cambio de estado de un animal ya rescatado):
         - ubicacion: 1=Refugio, 2=Transito, 3=Veterinaria, 4=Hogar_adoptante
         - estado: 1=Perdido, 2=En_Tratamiento, 3=En_Adopción, 5=Adoptado, 6=Fallecido
