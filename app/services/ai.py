@@ -115,21 +115,13 @@ class AIService:
                     {"role": "user", "content": text}
                 ],
                 temperature=0.3,
-                max_tokens=1000
+                max_tokens=1000,
+                response_format={"type":"json_object"}
             )
             # Parsear respuesta JSON - limpiar bloques de código si existen
             content = response.choices[0].message.content
             
-            # Limpiar backticks y bloques de código
-            content = content.strip()
-            if content.startswith("```json"):
-                content = content[7:]  # Remover ```json
-            elif content.startswith("```"):
-                content = content[3:]   # Remover ```
-            if content.endswith("```"):
-                content = content[:-3]  # Remover ``` del final
-            content = content.strip()
-            
+         
             analysis_data = json.loads(content)
             print("Análisis de IA:", analysis_data)
             
