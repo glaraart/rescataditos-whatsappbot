@@ -36,11 +36,11 @@ class AIService:
         {
             "tipo_registro": "nuevo_rescate", 
             "animal_nombre": "nombre del animal si se menciona o null",
-            "informacion_completa": false,
-            "campos_faltantes": ["lista de campos que faltan o los completaste con null segun las reglas por tipo"],
+            "informacion_completa": False Si cualquier campo requerido queda null o vacío de lo contrario True ,
+            "campos_faltantes": ["Si cualquier campo requerido queda null o vacío, debes incluir exactamente su nombre"],
             "detalles": { 
                 "tipo_animal": "perro o null si no se especifica",
-                "edad": "estimar en base a la foto si no se menciona en el texto",
+                "edad": "estimar en base a la foto si no se menciona en el texto, en meses o años segun corresponda",
                 "condicion_salud": "describir cómo fue recibido o null",
                 "color_pelo": [
                     { "color": "blanco", "porcentaje": 70 },
