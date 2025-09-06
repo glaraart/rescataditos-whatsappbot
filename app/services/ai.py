@@ -137,8 +137,8 @@ class AIService:
     async def audio_to_text(self, audio_file: bytes) -> str:
         """Convierte audio a texto usando Whisper de OpenAI"""
         try:
-            logger.info("Transcribiendo audio con Whisper...")
-                        
+            logger.info("Transcribiendo audio con Whisper...", audio_file)
+            
             # Verificar si parece ser un archivo válido
             if len(audio_file) < 100:
                 raise Exception(f"Archivo de audio muy pequeño: {len(audio_file)} bytes")
