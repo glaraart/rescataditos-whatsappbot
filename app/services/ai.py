@@ -40,7 +40,7 @@ class AIService:
             "campos_faltantes": [],
             "detalles": {
                 "tipo_animal": null,
-                "edad": no puede estar en null estimar la edad del animal en base a la foto ejemplo 3 meses 8 años,
+                "edad": no puede estar en null estimar la edad del animal en base a la foto ejemplo 3 meses 8 años(no tiene q ser exacta si no un estimado en base a la foto, si no lo podes estimar explicar porque ?),
                 "condicion_de_salud_inicial": null,
                 "color_de_pelo": [
                  { "color": "color1", "porcentaje": porcentaje color1 },
@@ -61,7 +61,7 @@ class AIService:
         -"campos_faltantes": el nombre de los campos del json q no pudiste completar con la informacion de la imagen y texto,
  
         EDAD:
-        -Estimá la edad del animal en años o meses, si no lo podes estimar explicar porque ? 
+        -Estimá la edad del animal en años o meses no tiene q ser exacta si no un estimado en base a la foto, si no lo podes estimar explicar porque ? 
         COLOR_Pelo:
         - Describe como arreglo de 1 a 3 objetos { "color": "<nombre>", "porcentaje": <0-100> } sumando ≈100.
         - Prefiere nombres simples: "gris", "blanco", "negro", "marrón", "atigrado", "bicolor", etc.

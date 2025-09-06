@@ -29,8 +29,7 @@ class MessageHandler:
             "audio": self._handle_audio,
             "image": self._handle_image
         }
-     
-    
+         
     async def process_message(self, message) :
         """Procesa mensaje con contexto de conversación inteligente"""
         try:
@@ -61,24 +60,29 @@ class MessageHandler:
     async def _handle_analysis_result(self, message, analysis: AIAnalysis):
         """Maneja el resultado del análisis de IA"""
         try:
-     
-            analysis_dict = {
-                'tipo_registro': analysis.tipo_registro,
-                'detalles': analysis.detalles
-            }
-            print("analysis dict", analysis_dict) 
-            
             # Crear registros según tipo
             if analysis.tipo_registro == "nuevo_rescate": 
                 # Generar ID único de 10 dígitos para el rescate
-                rescue_id = random.randint(1000000000, 9999999999)
-                analysis.detalles["id"] = rescue_id
-                analysis.detalles["fecha"] = message.get("timestamp")
-                analysis.detalles["activo"] = "TRUE"
-                analysis.detalles["fecha_actualizacion"] = message.get("timestamp")
+                rescue_id = random.randint(1000000000, 9999999999) 
+                fecha = datetime.fromtimestamp(message.get("timestamp"))
+          
+                animal = {
+                        "id":rescue_id, 
+                        "nombre": analysis.get("nombre"),
+                        "tipo_animal": analysis.detalles.get("tipo_animal"),
+                        "fecha": fecha.strftime('%d/%m/%Y %H:%M:%S'),
+                        "ubicacion": analysis.detalles.get("ubicacion"),
+                        "edad": analysis.detalles.get("edad"),
+                        "color_de_pelo": analysis.detalles.get("color_de_pelo"),
+                        "condicion_de_salud_inicial": analysis.detalles.get("condicion_de_salud_inicial"),
+                        "activo":True,
+                        "fecha_actualizacion": fecha.strftime('%d/%m/%Y'),
+                        "media_url": analysis.detalles.get("media_url")
+                }
+                   
                 analysis.detalles["cambio_estado"]["animal_id"] = rescue_id
-                analysis.detalles["cambio_estado"]["fecha"] = message.get("timestamp")
-                self.sheets_service.insert_sheet_from_dict(analysis.detalles, "ANIMAL")
+                analysis.detalles["cambio_estado"]["fecha"] = fecha.strftime('%d/%m/%Y %H:%M:%S')
+                self.sheets_service.insert_sheet_from_dict(animal, "ANIMAL")
                 self.sheets_service.insert_sheet_from_dict(analysis.detalles, "INTERACCION")
                 self.sheets_service.insert_sheet_from_dict(analysis.detalles["cambio_estado"], "EVENTO")
 
