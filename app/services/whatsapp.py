@@ -61,6 +61,7 @@ class WhatsAppService:
             # Primera llamada: obtener información del media
             response = await client.get(media_url, headers=headers)
             response.raise_for_status()
+            print("response:", response)
             # Parsear JSON para obtener la URL real
             media_info = response.json()
             

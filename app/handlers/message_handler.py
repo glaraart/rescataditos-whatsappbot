@@ -117,7 +117,7 @@ class MessageHandler:
             # Convertir audio a texto con Whisper
             audio_data = message["audio"]
             media_url = f"https://graph.facebook.com/v22.0/{audio_data['id']}"
-            audio_bytes =  self.whatsapp_service.download_media(media_url)
+            audio_bytes = await self.whatsapp_service.download_media(media_url)
             
             # Convertir audio a texto con Whisper directamente desde bytes
             text = await self.ai_service.audio_to_text(audio_bytes)
