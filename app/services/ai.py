@@ -73,7 +73,7 @@ class AIService:
         - tipo_relacion_id: 1=Adoptante, 2=Transitante, 3=Veterinario, 4=Voluntario, 5=Interesado
 
         VISITA_VET - Campos requeridos:
-        - animal_nombre (debe estar en el mensaje)
+        - nombre (debe estar en el mensaje)
         - veterinario (nombre/clínica)
         - fecha (cuándo fue)
         - diagnostico (qué encontró)
@@ -138,11 +138,7 @@ class AIService:
         """Convierte audio a texto usando Whisper de OpenAI"""
         try:
             logger.info("Transcribiendo audio con Whisper...", audio_file)
-            
-            # Verificar si parece ser un archivo válido
-            if len(audio_file) < 100:
-                raise Exception(f"Archivo de audio muy pequeño: {len(audio_file)} bytes")
-            
+                         
             # Guardar archivo temporal para Whisper
             with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as tmp_file:
                 tmp_file.write(audio_file)
