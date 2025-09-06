@@ -35,23 +35,23 @@ class AIService:
         RESPONDE EN JSON con esta estructura exacta:
         {
             "tipo_registro": "nuevo_rescate",
-            "animal_nombre": null,
+            "nombre": null,
             "informacion_completa": false,
             "campos_faltantes": [],
             "detalles": {
                 "tipo_animal": null,
                 "edad": no puede estar en null estimar la edad del animal en base a la foto ejemplo 3 meses 8 años,
-                "condicion_salud": null,
-                "color_pelo": [
+                "condicion_de_salud_inicial": null,
+                "color_de_pelo": [
                  { "color": "color1", "porcentaje": porcentaje color1 },
                  { "color": "color2", "porcentaje": porcentaje color2 }
                 ],
                 "ubicacion": "lugar donde fue encontrado",
                 "cambio_estado": {
-                "ubicacion": 1,
-                "estado": 1,
+                "ubicacion_id": 1,
+                "estado_id": 1,
                 "persona": null,
-                "relacion": 1
+                "tipo_relacion_id": 1
                 }
             }
         }
@@ -67,10 +67,10 @@ class AIService:
         - Prefiere nombres simples: "gris", "blanco", "negro", "marrón", "atigrado", "bicolor", etc.
 
         CAMBIO_ESTADO - campos requeridos (se puede incluir en detalles cuando es un nuevo_rescate o solo cuendo es un cambio de estado de un animal ya rescatado):
-        - ubicacion: 1=Refugio, 2=Transito, 3=Veterinaria, 4=Hogar_adoptante
-        - estado: 1=Perdido, 2=En_Tratamiento, 3=En_Adopción, 5=Adoptado, 6=Fallecido
+        - ubicacion_id: 1=Refugio, 2=Transito, 3=Veterinaria, 4=Hogar_adoptante
+        - estado_id: 1=Perdido, 2=En_Tratamiento, 3=En_Adopción, 5=Adoptado, 6=Fallecido
         - persona: nombre o cuenta de quien adopta/transita
-        - relacion: 1=Adoptante, 2=Transitante, 3=Veterinario, 4=Voluntario, 5=Interesado
+        - tipo_relacion_id: 1=Adoptante, 2=Transitante, 3=Veterinario, 4=Voluntario, 5=Interesado
 
         VISITA_VET - Campos requeridos:
         - animal_nombre (debe estar en el mensaje)

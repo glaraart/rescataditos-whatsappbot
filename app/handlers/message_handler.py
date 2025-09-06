@@ -2,6 +2,7 @@
 import logging
 import asyncio
 import json
+import random
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
 from app.models.whatsapp import WhatsAppMessage, AIAnalysis
@@ -69,9 +70,17 @@ class MessageHandler:
             
             # Crear registros según tipo
             if analysis.tipo_registro == "nuevo_rescate": 
+                # Generar ID único de 10 dígitos para el rescate
+                rescue_id = random.randint(1000000000, 9999999999)
+                analysis.detalles["id"] = rescue_id
+                analysis.detalles["fecha"] = message.get("timestamp")
+                analysis.detalles["activo"] = "TRUE"
+                analysis.detalles["fecha_actualizacion"] = message.get("timestamp")
+                analysis.detalles["cambio_estado"]["animal_id"] = rescue_id
+                analysis.detalles["cambio_estado"]["fecha"] = message.get("timestamp")
                 self.sheets_service.insert_sheet_from_dict(analysis.detalles, "ANIMAL")
-                self.sheets_service.insert_sheet_from_dict(analysis.detalles, "POST")
-                self.sheets_service.insert_sheet_from_dict(analysis.detalles,"EVENTO")
+                self.sheets_service.insert_sheet_from_dict(analysis.detalles, "INTERACCION")
+                self.sheets_service.insert_sheet_from_dict(analysis.detalles["cambio_estado"], "EVENTO")
 
             elif analysis.tipo_registro == "cambio_estado":
                 self.sheets_service.insert_sheet_from_dict(analysis.detalles,"EVENTO")
@@ -139,20 +148,14 @@ class MessageHandler:
             image_data = image["image"]
             media_url = f"https://graph.facebook.com/v22.0/{image_data['id']}"
             content = image_data.get("caption", "")
-            image_file = await self.whatsapp_service.download_media(media_url)
+            image_file, download_url = await self.whatsapp_service.download_media(media_url)
             combined_text =content + " " + combined_text 
 
             if not image_file:
                 raise Exception("No se pudo descargar la imagen")
-            # Subir imagen a Google Drive
-            #drive_url = await self.drive_service.upload_file(
-            #    image_file, 
-            #    f"rescate_{message.message_id}.jpg"
-            #)
-         #
-            #Analizar imagen + texto (si hay caption) con IA
+            
             analysis = await self.ai_service.analyze_image_and_text( image_bytes=image_file,text=combined_text)
- 
+            analysis.detalles["media_url"] = download_url
             return analysis
             
         except Exception as e:
