@@ -64,7 +64,7 @@ class MessageHandler:
             if analysis.tipo_registro == "nuevo_rescate": 
                 # Generar ID único de 10 dígitos para el rescate
                 rescue_id = random.randint(1000000000, 9999999999) 
-                fecha = datetime.fromtimestamp(message.get("timestamp"))
+                fecha = datetime.fromtimestamp(int(message.get("timestamp")))
           
                 animal = {
                         "id":rescue_id, 
