@@ -73,7 +73,7 @@ class MessageHandler:
                         "fecha": fecha.strftime('%d/%m/%Y %H:%M:%S'),
                         "ubicacion": analysis.detalles.get("ubicacion"),
                         "edad": analysis.detalles.get("edad"),
-                        "color_de_pelo": analysis.detalles.get("color_de_pelo"),
+                        "color_de_pelo": str(analysis.detalles.get("color_de_pelo")),
                         "condicion_de_salud_inicial": analysis.detalles.get("condicion_de_salud_inicial"),
                         "activo":True,
                         "fecha_actualizacion": fecha.strftime('%d/%m/%Y'),
