@@ -148,14 +148,14 @@ class MessageHandler:
             image_data = image["image"]
             media_url = f"https://graph.facebook.com/v22.0/{image_data['id']}"
             content = image_data.get("caption", "")
-            image_file, download_url = await self.whatsapp_service.download_media(media_url)
+            image_file= await self.whatsapp_service.download_media(media_url)
             combined_text =content + " " + combined_text 
 
             if not image_file:
                 raise Exception("No se pudo descargar la imagen")
             
             analysis = await self.ai_service.analyze_image_and_text( image_bytes=image_file,text=combined_text)
-            analysis.detalles["media_url"] = download_url
+            analysis.detalles["media_url"] = media_url
             return analysis
             
         except Exception as e:

@@ -71,5 +71,4 @@ class WhatsAppService:
             # Segunda llamada: descargar el archivo real
             download_response = await client.get(real_download_url, headers=headers)
             download_response.raise_for_status()
-            print("download_response:", download_response.content)
-            return download_response.content , real_download_url
+            return download_response.content 
