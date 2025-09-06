@@ -68,7 +68,7 @@ class MessageHandler:
           
                 animal = {
                         "id":rescue_id, 
-                        "nombre": analysis.get("nombre"),
+                        "nombre": analysis.animal_nombre,
                         "tipo_animal": analysis.detalles.get("tipo_animal"),
                         "fecha": fecha.strftime('%d/%m/%Y %H:%M:%S'),
                         "ubicacion": analysis.detalles.get("ubicacion"),
