@@ -65,23 +65,22 @@ class MessageHandler:
                 'tipo_registro': analysis.tipo_registro,
                 'detalles': analysis.detalles
             }
-            print("analysis dict", analysis_dict)
-            await self.sheets_service.log_message_with_analysis(message, analysis_dict)
+            print("analysis dict", analysis_dict) 
             
             # Crear registros según tipo
             if analysis.tipo_registro == "nuevo_rescate": 
-                await self.sheets_service.insert_sheet_from_dict(analysis.detalles, "ANIMAL")
-                await self.sheets_service.insert_sheet_from_dict(analysis.detalles, "POST")
-                await self.sheets_service.insert_sheet_from_dict(analysis.detalles,"EVENTO")
+                self.sheets_service.insert_sheet_from_dict(analysis.detalles, "ANIMAL")
+                self.sheets_service.insert_sheet_from_dict(analysis.detalles, "POST")
+                self.sheets_service.insert_sheet_from_dict(analysis.detalles,"EVENTO")
 
             elif analysis.tipo_registro == "cambio_estado":
-                await self.sheets_service.insert_sheet_from_dict(analysis.detalles,"EVENTO")
+                self.sheets_service.insert_sheet_from_dict(analysis.detalles,"EVENTO")
                 
             elif analysis.tipo_registro == "visita_vet":
-                await self.sheets_service.insert_sheet_from_dict(analysis.detalles,"VISITA_VETERINARIA")
+                self.sheets_service.insert_sheet_from_dict(analysis.detalles,"VISITA_VETERINARIA")
                 
             elif analysis.tipo_registro == "gasto":
-                await self.sheets_service.insert_sheet_from_dict(analysis.detalles,"GASTOS")
+                self.sheets_service.insert_sheet_from_dict(analysis.detalles,"GASTOS")
 
             elif analysis.tipo_registro == "consulta":
                 # Solo log, no crear registro adicional
@@ -118,7 +117,7 @@ class MessageHandler:
             # Convertir audio a texto con Whisper
             audio_data = message["audio"]
             media_url = f"https://graph.facebook.com/v22.0/{audio_data['id']}"
-            audio_bytes = await self.whatsapp_service.download_media(media_url)
+            audio_bytes =  self.whatsapp_service.download_media(media_url)
             
             # Convertir audio a texto con Whisper directamente desde bytes
             text = await self.ai_service.audio_to_text(audio_bytes)

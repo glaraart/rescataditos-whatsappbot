@@ -58,6 +58,7 @@ class AIService:
         REGLAS GENERALES
         - Extrae TODO lo disponible de texto e imagen.  
         - "informacion_completa" = true si pudiste completar todos los campos del json.
+        -"campos_faltantes": el nombre de los campos del json q no pudiste completar con la informacion de la imagen y texto,
  
         EDAD:
         -Estimá la edad del animal en años o meses, si no lo podes estimar explicar porque ? 
