@@ -57,10 +57,10 @@ class AIService:
         }
         REGLAS GENERALES
         - Extrae TODO lo disponible de texto e imagen.  
-        - "informacion_completa" = true SOLO si todos los campos requeridos del json no son null.
+        - "informacion_completa" = true si pudiste completar todos los campos del json.
  
         EDAD:
-        -Estimá la edad del animal en años o meses.
+        -Estimá la edad del animal en años o meses, si no lo podes estimar explicar porque ? 
         COLOR_Pelo:
         - Describe como arreglo de 1 a 3 objetos { "color": "<nombre>", "porcentaje": <0-100> } sumando ≈100.
         - Prefiere nombres simples: "gris", "blanco", "negro", "marrón", "atigrado", "bicolor", etc.
@@ -89,15 +89,8 @@ class AIService:
         CONSULTA - Campos opcionales:
         - tema (sobre qué pregunta)
         - respuesta_sugerida (si puedes dar una respuesta básica)
-        
-        EJEMPLOS:
-        Mensaje: "Encontré un perro en Villa Fiorita"
-        → Falta: condicion_salud, edad, color_pelo, cambio_estado completo
-        
-        Mensaje: "Rex fue adoptado por María"
-        → Tipo: cambio_estado, Falta: fecha_adopcion, relacion_especifica
-        """
-    
+        """    
+
     async def analyze_text(self, text: str) -> AIAnalysis:
         """Analiza texto usando OpenAI y retorna análisis estructurado"""
         try:
@@ -213,7 +206,8 @@ class AIService:
             # Agregar campos de validación como atributos adicionales
             analysis.informacion_completa = analysis_data.get("informacion_completa")
             analysis.campos_faltantes = analysis_data.get("campos_faltantes", [])
-                    
+
+            print("analysis ai", analysis)
             return analysis
             
         except json.JSONDecodeError as e:
