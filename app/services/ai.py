@@ -137,7 +137,7 @@ class AIService:
     async def audio_to_text(self, audio_file: bytes) -> str:
         """Convierte audio a texto usando Whisper de OpenAI"""
         try:
-            logger.info("Transcribiendo audio con Whisper...", audio_file)
+            logger.info(f"Transcribiendo audio con Whisper... {audio_file}")
                          
             # Guardar archivo temporal para Whisper
             with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as tmp_file:
@@ -146,6 +146,7 @@ class AIService:
                     
             # Transcribir con Whisper usando la nueva API
             with open(tmp_file_path, "rb") as audio:
+                print("audio file opened for whisper:", audio)
                 response = await self.client.audio.transcriptions.create(
                     model="whisper-1",
                     file=audio,
@@ -197,7 +198,7 @@ class AIService:
             # Crear análisis con información de imagen
             analysis = AIAnalysis(
                 tipo_registro=analysis_data.get("tipo_registro", "consulta"),
-                animal_nombre=analysis_data.get("animal_nombre"),
+                animal_nombre=analysis_data.get("nombre"),
                 detalles=analysis_data.get("detalles", {})
             )
             # Agregar campos de validación como atributos adicionales
