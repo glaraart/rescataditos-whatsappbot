@@ -9,6 +9,7 @@ import logging
 import uvicorn
 from fastapi import FastAPI, Request, HTTPException, Query
 from fastapi.responses import PlainTextResponse
+from app.config import settings
 # ===== HANDLERS =====
 from app.handlers.message_handler import MessageHandler 
 
@@ -18,13 +19,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-# ===== CONFIGURACIÓN =====
-# WhatsApp
-VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN")
  
-# Cloud Run
-PORT = int(os.getenv("PORT", 8080))
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
 # ===== INICIALIZAR FASTAPI =====
@@ -36,11 +31,7 @@ app = FastAPI(
     docs_url="/docs" if ENVIRONMENT == "development" else None,
     redoc_url="/redoc" if ENVIRONMENT == "development" else None
 )
-
-# Inicializar handler de mensajes (maneja sus propias dependencias y respuestas)
-#message_handler = MessageHandler()
-#whatsapp_service = WhatsAppService()
-
+ 
 # ===== WEBHOOK WHATSAPP =====
 
 @app.get("/webhook")
@@ -52,7 +43,7 @@ async def verify_webhook(
     """Verificación del webhook de WhatsApp"""
     logger.info(f"Verificación webhook: mode={hub_mode}, token={hub_verify_token}")
     
-    if hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
+    if hub_mode == "subscribe" and hub_verify_token == settings.WHATSAPP_VERIFY_TOKEN:
         logger.info("Webhook verificado exitosamente")
         return PlainTextResponse(hub_challenge)
     else:
@@ -97,7 +88,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=PORT,
+        port=8080,
         reload=ENVIRONMENT == "development",
         log_level="info"
     )

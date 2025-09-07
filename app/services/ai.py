@@ -92,47 +92,47 @@ class AIService:
         - respuesta_sugerida (si puedes dar una respuesta básica)
         """    
 
-    async def analyze_text(self, text: str) -> AIAnalysis:
-        """Analiza texto usando OpenAI y retorna análisis estructurado"""
+    async def analyze_multimodal(self, content_list: list) -> AIAnalysis:
+        """Analiza contenido multimodal (texto, imagen, audio) usando GPT-4"""
         try:
-            logger.info(f"Analizando texto: {text[:100]}...")
+            # Log del contenido que se va a analizar 
+            logger.info(f"Analizando contenido con IA")
             
             response = await self.client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
                     {"role": "system", "content": self.rescue_prompt},
-                    {"role": "user", "content": text}
+                    {"role": "user", "content": content_list}
                 ],
-                temperature=0.3,
-                max_tokens=1000,
-                response_format={"type":"json_object"}
+                response_format={"type": "json_object"},
+                temperature=0.2,
+                max_tokens=1000
             )
-            # Parsear respuesta JSON - limpiar bloques de código si existen
-            content = response.choices[0].message.content
             
-         
-            analysis_data = json.loads(content)
-            print("Análisis de IA:", analysis_data)
+            result = response.choices[0].message.content.strip()
+            analysis_data = json.loads(result)
             
-            # Validar y crear objeto AIAnalysis con los nuevos campos
+            print("Análisis de IA multimodal:", analysis_data)
+            
+            # Crear análisis con los datos recibidos
             analysis = AIAnalysis(
                 tipo_registro=analysis_data.get("tipo_registro", "consulta"),
-                animal_nombre=analysis_data.get("animal_nombre"), 
+                animal_nombre=analysis_data.get("nombre"),
                 detalles=analysis_data.get("detalles", {})
             )
             
-            # Agregar campos de validación como atributos adicionales
+            # Agregar campos de validación
             analysis.informacion_completa = analysis_data.get("informacion_completa")
             analysis.campos_faltantes = analysis_data.get("campos_faltantes", [])
             
             return analysis
             
         except json.JSONDecodeError as e:
-            logger.error(f"Error parseando respuesta JSON de OpenAI: {e}")
-            return self._create_fallback_analysis(text, "Error de parsing JSON")
+            logger.error(f"Error parseando respuesta JSON: {e}")
+            return self._create_fallback_analysis("contenido multimodal", "Error de parsing JSON")
         except Exception as e:
-            logger.error(f"Error en análisis de texto: {e}")
-            return self._create_fallback_analysis(text, str(e))
+            logger.error(f"Error en análisis multimodal: {e}")
+            return self._create_fallback_analysis("contenido multimodal", str(e))
     
     async def audio_to_text(self, audio_file: bytes) -> str:
         """Convierte audio a texto usando Whisper de OpenAI"""
@@ -164,57 +164,7 @@ class AIService:
         except Exception as e:
             logger.error(f"Error transcribiendo audio: {e}")
             raise Exception(f"Error en transcripción: {e}")
-        
-    async def analyze_image_and_text(self, image_bytes, text: str = "") -> AIAnalysis:
-        """Analiza imagen y texto opcional usando GPT-4 Vision"""
-        try: 
-            logger.info(f"Analizando imagen y texto: {text[:100]}...")
-            content_aux = []
-            # Prompt específico para imágenes de rescate
-            system_prompt = self.rescue_prompt
-            base64_image = base64.b64encode(image_bytes).decode()
-            content_aux=[
-                {   "type": "image_url",
-                    "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
-                },
-                {"type": "text", "text": f"Mensaje: {text}"}
-                ]
-            print ("contexto ai" ,content_aux)
-            # Resto igual, pero usar 'content' en lugar del objeto hardcodeado
-            response = await self.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": content_aux}  # ← USAR LA LISTA DINÁMICA
-                ],
-                response_format={"type": "json_object"},
-                temperature=0.2,
-                max_tokens=800
-            )
-            print("respuesta ai" , response)
-            result= response.choices[0].message.content.strip()             
-            analysis_data = json.loads(result)
-            
-            # Crear análisis con información de imagen
-            analysis = AIAnalysis(
-                tipo_registro=analysis_data.get("tipo_registro", "consulta"),
-                animal_nombre=analysis_data.get("nombre"),
-                detalles=analysis_data.get("detalles", {})
-            )
-            # Agregar campos de validación como atributos adicionales
-            analysis.informacion_completa = analysis_data.get("informacion_completa")
-            analysis.campos_faltantes = analysis_data.get("campos_faltantes", [])
 
-            print("analysis ai", analysis)
-            return analysis
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Error parseando respuesta JSON de análisis de imagen: {e}")
-            return self._create_fallback_analysis(f"Error de parsing JSON")
-        except Exception as e:
-            logger.error(f"Error analizando imagen: {e}")
-            return self._create_fallback_analysis(str(e))
-    
     def _create_fallback_analysis(self, original_content: str, error_message: str) -> AIAnalysis:
         """Crea análisis de respaldo cuando falla el procesamiento principal"""
         return AIAnalysis(

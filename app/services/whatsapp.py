@@ -1,5 +1,5 @@
 # WhatsApp webhook service
-from fastapi import Request, HTTPException
+from fastapi import HTTPException
 from typing import Dict, Any
 import json
 import logging

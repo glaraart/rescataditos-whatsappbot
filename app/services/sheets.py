@@ -210,3 +210,42 @@ class SheetsService:
         except Exception as e:
             logger.error(f"Error eliminando registros: {e}")
             return False
+    
+    def check_animal_name_exists(self, nombre: str) -> Optional[int]:
+        """Validar si existe un nombre en la hoja ANIMAL y devolver el ID si existe"""
+        try:
+            logger.info(f"Buscando animal con nombre '{nombre}' en hoja ANIMAL")
+            
+            # Obtener la hoja ANIMAL
+            worksheet = self.get_worksheet("ANIMAL")
+            
+            # Obtener todos los datos como lista de listas
+            all_values = worksheet.get_all_values()
+            
+            if len(all_values) < 2:  # Solo headers o vacío
+                logger.info("No hay animales registrados en la hoja ANIMAL")
+                return None
+            
+            # Crear DataFrame con pandas
+            headers = [col.strip() for col in all_values[0]]  # Primera fila como headers
+            data_rows = all_values[1:]  # Resto como datos
+            
+            # Crear DataFrame
+            df = pd.DataFrame(data_rows, columns=headers)
+            
+            # Buscar coincidencias exactas por nombre (case insensitive)
+            matches = df[df['nombre'].str.lower() == nombre.lower()]
+            
+            if not matches.empty:
+                # Convertir la primera coincidencia a diccionario
+                animal_data = matches.iloc[0].to_dict()
+                
+                logger.info(f"Animal encontrado: {animal_data.get('nombre')} (ID: {animal_data.get('id')})")
+                return int(animal_data.get('id'))  # Devolver solo el ID
+            else:
+                logger.info(f"No se encontró animal con nombre '{nombre}'")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error buscando animal por nombre '{nombre}': {e}")
+            return None
