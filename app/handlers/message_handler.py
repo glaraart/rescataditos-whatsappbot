@@ -69,7 +69,7 @@ class MessageHandler:
     
     async def _create_nuevo_rescate(self, message, analysis: AIAnalysis):
         """Crear registro de nuevo rescate"""
-        if self.sheets_service.check_animal_name_exists(analysis.animal_nombre):
+        if analysis.animal_nombre and self.sheets_service.check_animal_name_exists(analysis.animal_nombre):
             await self.whatsapp_service.send_message(message.get("from"), f"❌ Ya existe un animal registrado con el nombre '{analysis.animal_nombre}'. Por favor elige otro nombre.")
             return False
         elif analysis.informacion_completa:
@@ -105,7 +105,7 @@ class MessageHandler:
                 await self.whatsapp_service.send_message(message.get("from"), "❌ Error interno al crear el rescate. Intenta nuevamente.")
                 return False
         else:
-            return True  # Información incompleta, pero no es un error
+            return False  # Información incompleta, pero no es un error
         
     async def _create_cambio_estado(self, message, analysis: AIAnalysis):
         """Crear registro de cambio de estado"""
