@@ -91,7 +91,6 @@ class SheetsService:
                 
                 # Append the new row
             worksheet.append_row(new_row)
-            print("insertado ")
             return 
             
         except Exception as e:

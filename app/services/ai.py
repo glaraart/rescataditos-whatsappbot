@@ -111,9 +111,7 @@ class AIService:
             
             result = response.choices[0].message.content.strip()
             analysis_data = json.loads(result)
-            
-            print("Análisis de IA multimodal:", analysis_data)
-            
+                        
             # Crear análisis con los datos recibidos
             analysis = AIAnalysis(
                 tipo_registro=analysis_data.get("tipo_registro", "consulta"),
@@ -145,8 +143,7 @@ class AIService:
                 tmp_file_path = tmp_file.name
                     
             # Transcribir con Whisper usando la nueva API
-            with open(tmp_file_path, "rb") as audio:
-                print("audio file opened for whisper:", audio)
+            with open(tmp_file_path, "rb") as audio: 
                 response = await self.client.audio.transcriptions.create(
                     model="whisper-1",
                     file=audio,
