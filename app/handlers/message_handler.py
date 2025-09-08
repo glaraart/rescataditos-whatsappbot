@@ -89,7 +89,8 @@ class MessageHandler:
                     "condicion_de_salud_inicial": analysis.detalles.get("condicion_de_salud_inicial"),
                     "activo": True,
                     "fecha_actualizacion": fecha.strftime('%d/%m/%Y'),
-                    "media_url": analysis.detalles.get("media_url")
+                    "media_url": analysis.detalles.get("media_url"),
+                    "animal_id": rescue_id, 
                 }
                 
                 analysis.detalles["cambio_estado"]["animal_id"] = rescue_id
@@ -97,7 +98,7 @@ class MessageHandler:
                     
                 # Insertar registros
                 self.sheets_service.insert_sheet_from_dict(animal, "ANIMAL")
-                self.sheets_service.insert_sheet_from_dict(analysis.detalles, "INTERACCION")
+                self.sheets_service.insert_sheet_from_dict(animal, "INTERACCION")
                 self.sheets_service.insert_sheet_from_dict(analysis.detalles["cambio_estado"], "EVENTO")
                 return True
             except Exception as e:
@@ -154,11 +155,19 @@ class MessageHandler:
         """Crear registro de gasto"""
         try:
             # Usar fecha de analysis si existe, sino timestamp del mensaje
+            
+            gasto_id = random.randint(1000000000, 9999999999)
+            analysis.detalles["gasto_id"] = gasto_id 
             if not analysis.detalles.get("fecha"):
                 fecha = datetime.fromtimestamp(int(message.get("timestamp")))
                 analysis.detalles["fecha"] = fecha.strftime('%d/%m/%Y %H:%M:%S')
             
             self.sheets_service.insert_sheet_from_dict(analysis.detalles, "GASTOS")
+            animal_nombre = self.sheets_service.check_animal_name_exists(analysis.animal_nombre)
+            if analysis.animal_nombre and animal_nombre:
+                analysis.detalles["animal_id"] = animal_nombre 
+                self.sheets_service.insert_sheet_from_dict(analysis.detalles, "GASTO_ANIMAL")
+                
             return True
         except Exception as e:
             logger.error(f"Error creando gasto: {e}")
