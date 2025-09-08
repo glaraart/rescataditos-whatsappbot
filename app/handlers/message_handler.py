@@ -112,10 +112,10 @@ class MessageHandler:
         animal_id = self.sheets_service.check_animal_name_exists(analysis.animal_nombre)
         if animal_id:
             try:
-                analysis.detalles["cambio_estado"]["animal_id"] = animal_id
+                analysis.detalles["animal_id"] = animal_id
                 fecha = datetime.fromtimestamp(int(message.get("timestamp")))
-                analysis.detalles["cambio_estado"]["fecha"] = fecha.strftime('%d/%m/%Y %H:%M:%S')
-                self.sheets_service.insert_sheet_from_dict(analysis.detalles["cambio_estado"], "EVENTO")
+                analysis.detalles["fecha"] = fecha.strftime('%d/%m/%Y %H:%M:%S')
+                self.sheets_service.insert_sheet_from_dict(analysis.detalles, "EVENTO")
                 return True
             except Exception as e:
                 logger.error(f"Error creando cambio de estado: {e}")
@@ -128,17 +128,36 @@ class MessageHandler:
     
     async def _create_visita_vet(self, message, analysis: AIAnalysis):
         """Crear registro de visita veterinaria"""
-        try:
-            self.sheets_service.insert_sheet_from_dict(analysis.detalles, "VISITA_VETERINARIA")
-            return True
-        except Exception as e:
-            logger.error(f"Error creando visita veterinaria: {e}")
-            await self.whatsapp_service.send_message(message.get("from"), "❌ Error interno al registrar visita veterinaria. Intenta nuevamente.")
-            return False
+        animal_id = self.sheets_service.check_animal_name_exists(analysis.animal_nombre)
+        if animal_id:
+            try:
+                analysis.detalles["animal_id"] = animal_id
+                
+                # Usar fecha de analysis si existe, sino timestamp del mensaje
+                if analysis.detalles.get("fecha"):
+                    # Ya tiene fecha, mantenerla
+                    fecha_str = analysis.detalles["fecha"]
+                else:
+                    # Usar timestamp del mensaje como fallback
+                    fecha = datetime.fromtimestamp(int(message.get("timestamp")))
+                    fecha_str = fecha.strftime('%d/%m/%Y %H:%M:%S')
+                    analysis.detalles["fecha"] = fecha_str
+                
+                self.sheets_service.insert_sheet_from_dict(analysis.detalles, "VISITA_VETERINARIA")
+                return True
+            except Exception as e:
+                logger.error(f"Error creando visita veterinaria: {e}")
+                await self.whatsapp_service.send_message(message.get("from"), "❌ Error interno al registrar visita veterinaria. Intenta nuevamente.")
+                return False
     
     async def _create_gasto(self, message, analysis: AIAnalysis):
         """Crear registro de gasto"""
         try:
+            # Usar fecha de analysis si existe, sino timestamp del mensaje
+            if not analysis.detalles.get("fecha"):
+                fecha = datetime.fromtimestamp(int(message.get("timestamp")))
+                analysis.detalles["fecha"] = fecha.strftime('%d/%m/%Y %H:%M:%S')
+            
             self.sheets_service.insert_sheet_from_dict(analysis.detalles, "GASTOS")
             return True
         except Exception as e:
