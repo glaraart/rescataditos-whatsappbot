@@ -1,6 +1,5 @@
 # Message handler with composition approach
 import logging
-import asyncio
 import json
 import random
 import base64
@@ -167,7 +166,7 @@ class MessageHandler:
             if analysis.animal_nombre and animal_nombre:
                 analysis.detalles["animal_id"] = animal_nombre 
                 self.sheets_service.insert_sheet_from_dict(analysis.detalles, "GASTO_ANIMAL")
-                
+
             return True
         except Exception as e:
             logger.error(f"Error creando gasto: {e}")

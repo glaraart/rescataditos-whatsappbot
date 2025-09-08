@@ -2,10 +2,10 @@ import os
 import json
 import logging
 import tempfile
+import base64
 from app.config import settings
 from app.models.whatsapp import AIAnalysis 
 from openai import AsyncOpenAI
-import base64
 
 logger = logging.getLogger(__name__)
 class AIService:

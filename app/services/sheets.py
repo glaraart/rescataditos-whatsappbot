@@ -3,12 +3,10 @@ import gspread
 import pandas as pd
 from google.oauth2.service_account import Credentials
 from typing import List, Dict, Any, Optional
+from datetime import datetime, timedelta
 import logging
 import json
-from datetime import datetime
 from app.config import settings
-from datetime import datetime, timedelta
-import os
 logger = logging.getLogger(__name__)
 
 class SheetsService:
@@ -97,25 +95,6 @@ class SheetsService:
             logger.error(f"Error updating sheet: {str(e)}")
             return 
     
-    def log_message_with_analysis(self, message_data, analysis_result):
-        """Log completo: mensaje + análisis de IA"""
-        # Convertir timestamp Unix a formato legible
-        try: 
-            timestamp = message_data.get('timestamp')
-            dt = datetime.fromtimestamp(int(timestamp))
-            formatted_timestamp = dt.strftime('%d/%m/%Y %H:%M:%S')
-            sheet = self.get_worksheet('MENSAJES_WHATSAPP')
-            sheet.append_row([
-                formatted_timestamp,
-                message_data.get('from_number'),
-                message_data.get('type'),
-                message_data.get('content'),
-                analysis_result.get('tipo_registro', '')
-            ]) 
-        except Exception as e:
-            logger.error(f"Error updating sheet: {str(e)}")
-            return False
-        
     def search_phone_in_whatsapp_sheet(self, phone: str) -> Optional[List[str]]:
         """Buscar registro por teléfono en la hoja WHATSAPP y devolver lista de mensajes recientes (últimos 5 minutos)"""
         try:
