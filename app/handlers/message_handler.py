@@ -176,7 +176,10 @@ class MessageHandler:
     async def _handle_consulta(self, message, analysis: AIAnalysis):
         """Manejar consulta - solo log"""
         logger.info(f"Consulta registrada: {analysis.detalles}")
-        return True  # Las consultas siempre son exitosas
+        phone =message.get("from")
+        respuesta_sugerida = analysis.respuesta_sugerida 
+        await self.whatsapp_service.send_message(phone, respuesta_sugerida )
+        return False  # Las consultas siempre son exitosas
     
     async def _handle_unknown_record_type(self, message, analysis: AIAnalysis):
         """Manejar tipos de registro desconocidos"""
