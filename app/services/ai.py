@@ -22,7 +22,7 @@ class AIService:
     
         self.rescue_prompt = """
 Eres un asistente que ayuda a rescatistas de animales.
-Debes clasificar el mensaje en uno de estos tipos y extraer toda la información disponible.
+Debes clasificar el mensaje en uno de estos tipos y extraer toda la información disponible en la imagen y en el texto.
 
 ESTRUCTURA DE RESPUESTA ESTÁNDAR (SIEMPRE IGUAL):
 {
@@ -92,18 +92,21 @@ UBICACION:
 - Si se menciona un lugar geográfico en el contexto del rescate (ej. "Ezeiza"), úsalo como ubicación.
 
 CONDICION_DE_SALUD_INICIAL: 
--Combina la información explícita de salud (ej. desparasitado) con el contexto del rescate (ej. madre desnutrida) para una descripción inicial completa.
+- Combina la información explícita de salud (ej. desparasitado) con el contexto del rescate (ej. madre desnutrida) para una descripción inicial completa.
+- Si no se especifica en el texto determinar en base a la foto 
 
 COLOR_DE_PELO:
 - Array de 1-3 objetos: {"color": "nombre", "porcentaje": número}
 - Porcentajes deben sumar ≈100
 - Nombres simples: "negro", "blanco", "gris", "marrón", "atigrado", etc.
 CAMBIO_ESTADO:
-UBICACION_ID
-- Si se menciona que alguien rescató y se ocupa del animal, inferir ubicacion_id: 2 (Tránsito), 
-- tipo_relacion_id: 2 (Transitante)
-ESTADO_ID:
-- Si hay una llamada a la adopción en el mensaje, inferir: 3 (En_Adopción).
+    UBICACION_ID
+    - analizar el texto para determinar
+    - Si se menciona que alguien rescató y se ocupa del animal, inferir ubicacion_id: 2 (Tránsito), 
+    TIPO_RELACION_ID: 
+    - analizar la relacion entre la persona si se menciona y determinar si es 1,2,3,4,5
+    ESTADO_ID:
+    - Si hay una llamada a la adopción en el mensaje, inferir: 3 (En_Adopción).
 
 INFORMACIÓN_COMPLETA:
 - true solo si TODOS los campos obligatorios están presentes
