@@ -64,61 +64,118 @@ TIPOS DE REGISTRO:
    Campos obligatorios en detalles:
    - monto (cantidad exacta) 
    - fecha (cuándo)
-   - categoria_id ( 1=Veterinario,2=Alimento ,3=Piedritas,4=Limpieza,5=Medicamentos,6=Transporte,7=Otros)
+   - categoria_id (1=Veterinario, 2=Alimento, 3=Piedritas, 4=Limpieza, 5=Medicamentos, 6=Transporte, 7=Otros)
    Campos opcionales:
-   - descripcion (en que se gasto , detalles adicionales si hay)
+   - descripcion (en que se gastó, detalles adicionales si hay)
    - proveedor (establecimiento u otro)
    - nombre (del animal, solo si se especifica)
-   - Responsable (quien pago el gasto)	
-   - Forma de Pago
+   - responsable (quien pagó el gasto)	
+   - forma_de_pago
 
 5. CONSULTA - Pregunta general
    Campos opcionales en detalles:
    - tema (sobre qué pregunta)
    - respuesta_sugerida (si puedes dar respuesta básica)
 
-REGLAS ESPECÍFICAS:
+REGLAS ESPECÍFICAS POR CAMPO:
 
 NOMBRE:
 - Siempre es el nombre del animal
-- Si no se menciona, usar null
+- Si no se menciona en texto ni aparece en imagen, usar null
 - Para GASTO es opcional (null si no se especifica)
 
 EDAD:
-- Estimar en base a foto/descripción
-- Formato: "X meses" o "X años"
-- Si no puedes estimar, explicar por qué en el campo
+- PRIORIDAD 1: Si el texto menciona edad en días, convertir a formato "X meses" o "X años"
+  Ejemplos: "50 días" → "2 meses", "400 días" → "1 año"
+- PRIORIDAD 2: Si hay foto, estimar edad basándote en tamaño, proporciones, dentición visible
+- PRIORIDAD 3: Si hay descripción (cachorro/adulto/senior), usar estimación general
+- Si no hay ninguna información, explicar por qué no puedes estimar en el campo
+- Solo marcar como faltante si literalmente no tienes foto NI descripción NI mención
+
 UBICACION: 
-- Si se menciona un lugar geográfico de Buenos Aires Argentica en el contexto del rescate (ej. "Ezeiza"), úsalo como ubicación.
+- PRIORIDAD 1: Ubicación explícita del rescate
+- PRIORIDAD 2: Cualquier mención geográfica en contexto del rescate (ej. "las mamas de Ezeiza" → "Ezeiza")
+- PRIORIDAD 3: Referencias indirectas (ej. "barrio del rescatista")
+- Solo marcar como faltante si no hay ninguna referencia geográfica en absoluto
 
 CONDICION_DE_SALUD_INICIAL: 
-- Combina la información explícita de salud (ej. desparasitado) con el contexto del rescate (ej. madre desnutrida) para una descripción inicial completa.
-- Si no se especifica en el texto determinar en base a la foto 
+- COMBINAR toda la información disponible de múltiples fuentes:
+  * Información médica explícita (vacunas, desparasitación, tratamientos)
+  * Contexto del rescate (ej. "madre desnutrida" afecta a cachorros)
+  * Observación de la foto (heridas visibles, estado del pelaje, expresión)
+  * Menciones de síntomas o comportamientos
+- Crear una descripción completa e integrada
+- Solo marcar como faltante si no hay foto NI ninguna mención de salud
 
 COLOR_DE_PELO:
 - Array de 1-3 objetos: {"color": "nombre", "porcentaje": número}
 - Porcentajes deben sumar ≈100
-- Nombres simples: "negro", "blanco", "gris", "marrón", "atigrado", etc.
+- Nombres simples: "negro", "blanco", "gris", "marrón", "beige", "crema", "atigrado", etc.
+- PRIORIDAD 1: Si hay foto, analizar y completar siempre
+- PRIORIDAD 2: Descripción en texto
+- Solo marcar como faltante si no hay foto NI descripción
+
 CAMBIO_ESTADO:
-    UBICACION_ID
-    - analizar el texto para determinar
-    - Si se menciona que alguien rescató y se ocupa del animal, inferir ubicacion_id: 2 (Tránsito), 
-    TIPO_RELACION_ID: 
-    - analizar la relacion entre la persona si se menciona y determinar si es 1,2,3,4,5
+    UBICACION_ID:
+    - Analizar el texto para determinar ubicación actual
+    - Si alguien "rescató y se ocupa del animal" → inferir ubicacion_id: 2 (Tránsito)
+    - Si menciona "refugio" → 1
+    - Si menciona "veterinaria" o "clínica" → 3
+    - Si menciona "adoptante" o "nuevo hogar" → 4
+    
     ESTADO_ID:
-    - Si hay una llamada a la adopción en el mensaje, inferir: 3 (En_Adopción).
+    - Si hay llamada a adopción ("en adopción", "busca hogar") → 3 (En_Adopción)
+    - Si menciona tratamiento veterinario activo → 2 (En_Tratamiento)
+    - Si dice "adoptado" → 5 (Adoptado)
+    - Analizar contexto completo del mensaje
+    
+    TIPO_RELACION_ID: 
+    - Analizar la relación de la persona mencionada:
+      * Rescató y busca adoptante → 2 (Transitante)
+      * Adoptó al animal → 1 (Adoptante)
+      * Es veterinario/a → 3 (Veterinario)
+      * Es voluntario/rescatista → 4 (Voluntario)
+      * Pregunta por adopción → 5 (Interesado)
+    
+    PERSONA:
+    - Incluir nombre completo si se menciona (ej. "Elena y su familia")
+    - Si solo hay cuenta de red social, usar esa
+    - Si hay múltiples personas, incluirlas todas
 
-INFORMACIÓN_COMPLETA:
-- true solo si TODOS los campos obligatorios están presentes
-- false si falta algún campo obligatorio
+INFORMACIÓN_COMPLETA Y CAMPOS_FALTANTES - REGLAS CRÍTICAS:
 
-CAMPOS_FALTANTES:
-- Lista exacta de nombres de campos obligatorios que faltan
-- Usar nombres de campos como aparecen en detalles
+DEFINICIÓN DE "CAMPO FALTANTE":
+- Un campo es faltante SOLO si quedó en null o vacío después de intentar TODAS estas fuentes:
+  1. Información EXPLÍCITA en el texto
+  2. Información VISIBLE en la imagen
+  3. Inferencias LÓGICAS del contexto
+  4. Estimaciones RAZONABLES basadas en datos parciales
+
+CRITERIO DE COMPLETADO:
+- Si completaste un campo por CUALQUIERA de los 4 métodos anteriores → NO es faltante
+- campos_faltantes = solo aquellos que literalmente quedaron en null
+- informacion_completa: true cuando TODOS los campos obligatorios tienen algún valor
+- informacion_completa: false solo cuando al menos un campo obligatorio quedó en null
+
+EJEMPLOS DE COMPLETADO VÁLIDO:
+- Edad: "50 días" en texto → convertir a "2 meses" → CAMPO COMPLETO
+- Color: foto disponible → analizar visualmente → CAMPO COMPLETO  
+- Ubicación: "de Ezeiza" en contexto → usar "Ezeiza" → CAMPO COMPLETO
+- Salud: "desparasitado" + "madre desnutrida" → combinar → CAMPO COMPLETO
+- Persona: "Elena y su familia" → usar texto completo → CAMPO COMPLETO
+
+IMPORTANTE: El objetivo es MAXIMIZAR la información extraída. 
+Solo marcar campos como faltantes cuando literalmente no existe forma de obtener ese dato.
 
 TIPO_REGISTRO:
-- Si no puedes determinar el tipo, usar null
+- Si no puedes determinar el tipo con certeza, usar null
 - Analizar contexto completo antes de decidir
+- Indicadores clave:
+  * "Rescatamos", "encontramos", fotos de cachorros → NUEVO_RESCATE
+  * "Fue adoptado", "está en tránsito ahora" → CAMBIO_ESTADO
+  * "Fue al veterinario", "le diagnosticaron" → VISITA_VET
+  * "Gastamos", "compramos", montos → GASTO
+  * "¿Cómo hago para...?", preguntas → CONSULTA
 
 EJEMPLOS DE RESPUESTA:
 
@@ -135,10 +192,10 @@ Ejemplo 1 - Nuevo rescate completo:
             {"color": "negro", "porcentaje": 70},
             {"color": "blanco", "porcentaje": 30}
         ],
-        "condicion_de_salud_inicial": "herida en pata trasera",
+        "condicion_de_salud_inicial": "Herida en pata trasera, desparasitado, estado general bueno",
         "ubicacion": "Villa Fiorito",
         "cambio_estado": {
-            "ubicacion_id": 1,
+            "ubicacion_id": 2,
             "estado_id": 2,
             "persona": "María Rescatista",
             "tipo_relacion_id": 4
@@ -146,40 +203,66 @@ Ejemplo 1 - Nuevo rescate completo:
     }
 }
 
-Ejemplo 2 - Gasto incompleto:
+Ejemplo 2 - Nuevo rescate con conversión de edad:
+{
+    "tipo_registro": "nuevo_rescate",
+    "nombre": "Luna",
+    "informacion_completa": true,
+    "campos_faltantes": [],
+    "detalles": {
+        "tipo_animal": "gato",
+        "edad": "2 meses",
+        "color_de_pelo": [
+            {"color": "gris", "porcentaje": 100}
+        ],
+        "condicion_de_salud_inicial": "Cachorro de 45 días, desparasitado, buena condición general visible en foto",
+        "ubicacion": "Flores",
+        "cambio_estado": {
+            "ubicacion_id": 2,
+            "estado_id": 3,
+            "persona": "Carlos y familia",
+            "tipo_relacion_id": 2
+        }
+    }
+}
+
+Ejemplo 3 - Gasto con información incompleta (caso real de faltantes):
 {
     "tipo_registro": "gasto",
     "nombre": null,
     "informacion_completa": false,
-    "campos_faltantes": ["fecha", "categoria"],
+    "campos_faltantes": ["fecha", "categoria_id"],
     "detalles": {
         "monto": 1500,
-        "concepto": "medicamentos",
+        "descripcion": "medicamentos",
         "fecha": null,
-        "categoria": null
+        "categoria_id": null
     }
 }
 
-Ejemplo 3 - Cambio_estado completo:
+Ejemplo 4 - Cambio de estado completo:
 {
     "tipo_registro": "cambio_estado",
     "nombre": "Parche",
-    "informacion_completa": True,
+    "informacion_completa": true,
     "campos_faltantes": [],
     "detalles": { 
-        "ubicacion_id": 1,
-        "estado_id": 2,
-        "persona": "Fulana",
-        "tipo_relacion_id": 4
-        }
+        "ubicacion_id": 4,
+        "estado_id": 5,
+        "persona": "Familia Rodríguez",
+        "tipo_relacion_id": 1
+    }
 }
 
 INSTRUCCIONES FINALES:
-1. Analiza TODO el contenido disponible (texto + imagen)
-2. Extrae TODA la información posible
-3. Responde SOLO con el JSON, sin explicaciones adicionales
-4. Mantén la estructura exacta especificada
-5. Si hay dudas sobre el tipo, analiza el contexto completo antes de decidir
+1. Analiza TODO el contenido disponible (texto + imagen) completamente
+2. Extrae TODA la información posible usando los 4 métodos de completado
+3. Convierte formatos cuando sea necesario (días → meses, descripciones → IDs)
+4. Combina información de múltiples fuentes para campos completos
+5. Solo marca como faltante lo que literalmente no pudiste obtener de ninguna forma
+6. Responde SOLO con el JSON, sin explicaciones adicionales fuera del JSON
+7. Mantén la estructura exacta especificada
+8. Si hay dudas sobre el tipo, analiza el contexto completo antes de decidir
 """
 
     async def analyze_multimodal(self, content_list: list) -> AIAnalysis:
