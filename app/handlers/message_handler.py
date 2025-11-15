@@ -39,7 +39,7 @@ class MessageHandler:
             
             # Construir contenido multimodal desde toda la conversación
             content_list = await self._build_content_from_conversation(phone)
-            
+            logger.info("content_list", content_list)
             # Análisis único con IA multimodal
             analysis = await self.ai_service.analyze_multimodal(content_list)
             logger.info("respuesta AI", analysis)
