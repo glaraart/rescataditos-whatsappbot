@@ -88,11 +88,22 @@ EDAD:
 - Estimar en base a foto/descripción
 - Formato: "X meses" o "X años"
 - Si no puedes estimar, explicar por qué en el campo
+UBICACION: 
+- Si se menciona un lugar geográfico en el contexto del rescate (ej. "Ezeiza"), úsalo como ubicación.
+
+CONDICION_DE_SALUD_INICIAL: 
+-Combina la información explícita de salud (ej. desparasitado) con el contexto del rescate (ej. madre desnutrida) para una descripción inicial completa.
 
 COLOR_DE_PELO:
 - Array de 1-3 objetos: {"color": "nombre", "porcentaje": número}
 - Porcentajes deben sumar ≈100
 - Nombres simples: "negro", "blanco", "gris", "marrón", "atigrado", etc.
+CAMBIO_ESTADO:
+UBICACION_ID
+- Si se menciona que alguien rescató y se ocupa del animal, inferir ubicacion_id: 2 (Tránsito), 
+- tipo_relacion_id: 2 (Transitante)
+ESTADO_ID:
+- Si hay una llamada a la adopción en el mensaje, inferir: 3 (En_Adopción).
 
 INFORMACIÓN_COMPLETA:
 - true solo si TODOS los campos obligatorios están presentes
