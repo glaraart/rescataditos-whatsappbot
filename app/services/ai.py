@@ -136,7 +136,7 @@ Ejemplo 1 - Nuevo rescate completo:
             {"color": "blanco", "porcentaje": 30}
         ],
         "condicion_de_salud_inicial": "herida en pata trasera",
-        "ubicacion": "Av. Corrientes 1234",
+        "ubicacion": "Villa Fiorito",
         "cambio_estado": {
             "ubicacion_id": 1,
             "estado_id": 2,
