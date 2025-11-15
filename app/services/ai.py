@@ -89,7 +89,7 @@ EDAD:
 - Formato: "X meses" o "X años"
 - Si no puedes estimar, explicar por qué en el campo
 UBICACION: 
-- Si se menciona un lugar geográfico en el contexto del rescate (ej. "Ezeiza"), úsalo como ubicación.
+- Si se menciona un lugar geográfico de Buenos Aires Argentica en el contexto del rescate (ej. "Ezeiza"), úsalo como ubicación.
 
 CONDICION_DE_SALUD_INICIAL: 
 - Combina la información explícita de salud (ej. desparasitado) con el contexto del rescate (ej. madre desnutrida) para una descripción inicial completa.
