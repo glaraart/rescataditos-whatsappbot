@@ -181,8 +181,7 @@ INSTRUCCIONES FINALES:
                     {"role": "user", "content": content_list}
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.2,
-                max_tokens=1000
+                temperature=0.0
             )
             
             result = response.choices[0].message.content.strip()
