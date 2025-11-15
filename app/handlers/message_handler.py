@@ -176,7 +176,7 @@ class MessageHandler:
         """Manejar consulta - solo log"""
         logger.info(f"Consulta registrada: {analysis.detalles}")
         phone =message.get("from")
-        respuesta_sugerida = analysis.respuesta_sugerida 
+        respuesta_sugerida = analysis.detalles.respuesta_sugerida
         await self.whatsapp_service.send_message(phone, respuesta_sugerida )
         return False  # Las consultas siempre son exitosas
     
