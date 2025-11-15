@@ -175,7 +175,7 @@ INSTRUCCIONES FINALES:
             logger.info(f"Analizando contenido con IA")
             
             response = await self.client.chat.completions.create(
-                model="gpt-5.1-mini",
+                model="gpt-5.1",
                 messages=[
                     {"role": "system", "content": self.rescue_prompt},
                     {"role": "user", "content": content_list}
