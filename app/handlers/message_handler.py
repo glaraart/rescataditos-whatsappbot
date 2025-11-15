@@ -42,6 +42,7 @@ class MessageHandler:
             
             # Análisis único con IA multimodal
             analysis = await self.ai_service.analyze_multimodal(content_list)
+            logger.info("respuesta AI", analysis)
             # Buscar el creador de registro apropiado
             creator = self.record_creators.get(analysis.tipo_registro, self._handle_unknown_record_type)
             
