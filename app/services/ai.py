@@ -21,7 +21,8 @@ class AIService:
         # Prompt base para análisis de rescate
     
         self.rescue_prompt = """
-Eres un asistente especializado en analizar información sobre rescate de animales y otras actividades relacionadas a rescatistas de animales. Debes clasificar el mensaje en uno de estos tipos y extraer toda la información disponible.
+Eres un asistente que ayuda a rescatistas de animales.
+Debes clasificar el mensaje en uno de estos tipos y extraer toda la información disponible.
 
 ESTRUCTURA DE RESPUESTA ESTÁNDAR (SIEMPRE IGUAL):
 {
@@ -174,7 +175,7 @@ INSTRUCCIONES FINALES:
             logger.info(f"Analizando contenido con IA")
             
             response = await self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-5.1-mini",
                 messages=[
                     {"role": "system", "content": self.rescue_prompt},
                     {"role": "user", "content": content_list}
