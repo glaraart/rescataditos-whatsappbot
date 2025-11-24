@@ -8,6 +8,7 @@ from app.models.whatsapp import  AIAnalysis
 from app.services.ai import AIService
 from app.services.sheets import SheetsService
 from app.services.whatsapp import WhatsAppService
+from app.services.drive import DriveService
 
 #from app.services.drive import DriveService
 
@@ -20,6 +21,7 @@ class MessageHandler:
         self.ai_service = AIService()
         self.sheets_service = SheetsService()
         self.whatsapp_service = WhatsAppService()
+        self.drive_service = DriveService()
         
         # Registry de creadores de registros
         self.record_creators = {
@@ -29,7 +31,7 @@ class MessageHandler:
             "gasto": self._create_gasto,
             "consulta": self._handle_consulta
         } 
-         
+        
     async def process_message(self, message) :
         """Procesa mensaje con contexto de conversación inteligente"""
         try:
@@ -47,7 +49,7 @@ class MessageHandler:
             creator = self.record_creators.get(analysis.tipo_registro, self._handle_unknown_record_type)
             
             # Ejecutar el creador correspondiente
-            success = await creator(message, analysis)
+            success = await creator(message, analysis, content_list)
 
             if success:
                 await self._send_completion_confirmation(phone, analysis)
@@ -66,7 +68,7 @@ class MessageHandler:
 
     # ===== CREADORES DE REGISTROS (REGISTRY PATTERN) =====
     
-    async def _create_nuevo_rescate(self, message, analysis: AIAnalysis):
+    async def _create_nuevo_rescate(self, message, analysis: AIAnalysis,content_list):
         """Crear registro de nuevo rescate"""
         if analysis.animal_nombre and self.sheets_service.check_animal_name_exists(analysis.animal_nombre):
             await self.whatsapp_service.send_message(message.get("from"), f"❌ Ya existe un animal registrado con el nombre '{analysis.animal_nombre}'. Por favor elige otro nombre.")
@@ -76,7 +78,8 @@ class MessageHandler:
                 # Generar ID único de 10 dígitos para el rescate
                 rescue_id = random.randint(1000000000, 9999999999) 
                 fecha = datetime.fromtimestamp(int(message.get("timestamp")))
-
+                media_url = self.drive_service.save_image(rescue_id  ,analysis.animal_nombre , content_list, "ANIMALES")
+                
                 animal = {
                     "id": rescue_id, 
                     "nombre": analysis.animal_nombre,
@@ -88,7 +91,7 @@ class MessageHandler:
                     "condicion_de_salud_inicial": analysis.detalles.get("condicion_de_salud_inicial"),
                     "activo": True,
                     "fecha_actualizacion": fecha.strftime('%d/%m/%Y'),
-                    "media_url": analysis.detalles.get("media_url"),
+                    "media_url": media_url,
                     "animal_id": rescue_id, 
                 }
                 
@@ -107,7 +110,7 @@ class MessageHandler:
         else:
             return False  # Información incompleta, pero no es un error
         
-    async def _create_cambio_estado(self, message, analysis: AIAnalysis):
+    async def _create_cambio_estado(self, message, analysis: AIAnalysis, content_list=None):
         """Crear registro de cambio de estado"""
         animal_id = self.sheets_service.check_animal_name_exists(analysis.animal_nombre)
         if animal_id:
@@ -126,7 +129,7 @@ class MessageHandler:
             return False
         
     
-    async def _create_visita_vet(self, message, analysis: AIAnalysis):
+    async def _create_visita_vet(self, message, analysis: AIAnalysis, content_list=None):
         """Crear registro de visita veterinaria"""
         animal_id = self.sheets_service.check_animal_name_exists(analysis.animal_nombre)
         if animal_id:
@@ -150,19 +153,21 @@ class MessageHandler:
                 await self.whatsapp_service.send_message(message.get("from"), "❌ Error interno al registrar visita veterinaria. Intenta nuevamente.")
                 return False
     
-    async def _create_gasto(self, message, analysis: AIAnalysis):
+    async def _create_gasto(self, message, analysis: AIAnalysis, content_list=None):
         """Crear registro de gasto"""
         try:
             # Usar fecha de analysis si existe, sino timestamp del mensaje
             
             gasto_id = random.randint(1000000000, 9999999999)
-            analysis.detalles["gasto_id"] = gasto_id 
+            analysis.detalles["gasto_id"] = gasto_id                 
             if not analysis.detalles.get("fecha"):
                 fecha = datetime.fromtimestamp(int(message.get("timestamp")))
                 analysis.detalles["fecha"] = fecha.strftime('%d/%m/%Y %H:%M:%S')
-            
+            media_url = self.drive_service.save_image(gasto_id , analysis.detalles["fecha"], content_list, "GASTOS")
+            analysis.detalles["Foto"] = media_url
             self.sheets_service.insert_sheet_from_dict(analysis.detalles, "GASTOS")
             animal_nombre = self.sheets_service.check_animal_name_exists(analysis.animal_nombre)
+
             if analysis.animal_nombre and animal_nombre:
                 analysis.detalles["animal_id"] = animal_nombre 
                 self.sheets_service.insert_sheet_from_dict(analysis.detalles, "GASTO_ANIMAL")
@@ -173,7 +178,7 @@ class MessageHandler:
             await self.whatsapp_service.send_message(message.get("from"), "❌ Error interno al registrar gasto. Intenta nuevamente.")
             return False
     
-    async def _handle_consulta(self, message, analysis: AIAnalysis):
+    async def _handle_consulta(self, message, analysis: AIAnalysis, content_list=None):
         """Manejar consulta - solo log"""
         logger.info(f"Consulta registrada: {analysis.detalles}")
         phone =message.get("from")
@@ -181,7 +186,7 @@ class MessageHandler:
         await self.whatsapp_service.send_message(phone, respuesta_sugerida )
         return False  # Las consultas siempre son exitosas
     
-    async def _handle_unknown_record_type(self, message, analysis: AIAnalysis):
+    async def _handle_unknown_record_type(self, message, analysis: AIAnalysis, content_list=None):
         """Manejar tipos de registro desconocidos"""
         logger.warning(f"Tipo de registro desconocido: {analysis.tipo_registro}")
         logger.info(f"Detalles del registro desconocido: {analysis.detalles}")
@@ -226,7 +231,6 @@ class MessageHandler:
                             "type": "image_url",
                             "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
                         })
-                        
                         # Agregar caption si existe
                     context_text +=  image_data.get("caption", "") 
                         
