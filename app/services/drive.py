@@ -1,6 +1,7 @@
 import logging 
 import base64
 from app.config import settings
+import json
 from io import BytesIO
 from googleapiclient.http import MediaIoBaseUpload
 from googleapiclient.discovery import build
@@ -13,7 +14,8 @@ class DriveService:
         self.drive_animales = settings.GOOGLE_DRIVE_FOLDER_ANIMALES
         self.drive_gastos = settings.GOOGLE_DRIVE_FOLDER_GASTOS
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        self.creds = Credentials.from_service_account_file(settings.GOOGLE_CREDENTIALS_JSON, scopes=scope)
+        creds_dict = json.loads(settings.GOOGLE_CREDENTIALS_JSON)
+        self.creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
             
             # Initialize Drive API service
         self.service = build('drive', 'v3', credentials=self.creds)
