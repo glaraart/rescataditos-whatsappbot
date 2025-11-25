@@ -35,3 +35,4 @@ pydub==0.25.1
 
 # Data processing
 pandas==2.1.4
+psycopg2-binary==2.9.10

@@ -8,19 +8,21 @@ Sistema para registrar las actividades realizadas por las rescatistas a traves d
 - **🤖 Análisis IA**: Clasifica automáticamente mensajes usando OpenAI
 - **📊 Google Sheets**: Registro automático en hojas de cálculo
 - **☁️ Google Drive**: Almacenamiento de archivos multimedia
+ - **📊 Postgres (psycopg2)**: Registro persistente en base de datos Postgres
+ - **☁️ Google Drive**: Almacenamiento de archivos multimedia
 - **⚡ FastAPI**: API REST asíncrona y rápida
 
 ## 🏗️ Arquitectura
 
 ```
-WhatsApp → Webhook → MessageHandler → [AIService, SheetsService, DriveService] → Respuesta automática
+WhatsApp → Webhook → MessageHandler → [AIService, PostgresService, DriveService] → Respuesta automática
 ```
 
 ## 📦 Tecnologías
 
 - **Framework**: FastAPI + Uvicorn
 - **IA**: OpenAI GPT-4o + Whisper
-- **Storage**: Google Sheets + Google Drive
+ - **Storage**: Postgres (psycopg2) + Google Drive
 - **Deploy**: Google Cloud Run
 - **Language**: Python 3.11
 
