@@ -21,7 +21,7 @@ class PostgresService:
 
     def __init__(self):
         self.host = settings.HOST
-        self.port = settings.PORT
+        self.port = settings.PORT_DB
         self.dbname = settings.DBNAME
         self.user = settings.USER
         self.password = settings.PASSWORD

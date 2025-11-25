@@ -8,8 +8,8 @@ Sistema para registrar las actividades realizadas por las rescatistas a traves d
 - **🤖 Análisis IA**: Clasifica automáticamente mensajes usando OpenAI
 - **📊 Google Sheets**: Registro automático en hojas de cálculo
 - **☁️ Google Drive**: Almacenamiento de archivos multimedia
- - **📊 Postgres (psycopg2)**: Registro persistente en base de datos Postgres
- - **☁️ Google Drive**: Almacenamiento de archivos multimedia
+- **📊 Postgres (psycopg2)**: Registro persistente en base de datos Postgres
+- **☁️ Google Drive**: Almacenamiento de archivos multimedia
 - **⚡ FastAPI**: API REST asíncrona y rápida
 
 ## 🏗️ Arquitectura

@@ -31,7 +31,7 @@ class Settings:
     USER = os.getenv("USER")
     PASSWORD = os.getenv("PASSWORD")
     HOST = os.getenv("HOST")
-    PORT = os.getenv("PORT")
+    PORT_DB = os.getenv("PORT_DB")
     DBNAME = os.getenv("DBNAME")
 
 settings = Settings()
