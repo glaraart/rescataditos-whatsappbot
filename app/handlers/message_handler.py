@@ -50,7 +50,7 @@ class MessageHandler:
             if success:
                 await self._send_completion_confirmation(phone, analysis)
                 # Limpiar cache después de procesar - eliminar registros del teléfono
-                self.db_service.delete_records_optimized(phone, "WHATSAPP")
+                self.db_service.delete_records_optimized(phone, "whatsapp_messages")
             elif not analysis.informacion_completa:
                 # El creator ya envió el mensaje de error específico
                 await self._request_missing_fields_from_ai(phone, analysis)
@@ -79,33 +79,49 @@ class MessageHandler:
                 media_url = self.drive_service.save_image(
                     rescue_id, analysis.animal_nombre, content_list, "ANIMALES"
                 )
+
+                # Dict para tabla `animales`
                 animal = {
                     "id": rescue_id,
                     "nombre": analysis.animal_nombre,
                     "tipo_animal": analysis.detalles.get("tipo_animal"),
-                    "fecha": fecha.strftime("%d/%m/%Y %H:%M:%S"),
+                    "fecha": fecha,
                     "ubicacion": analysis.detalles.get("ubicacion"),
                     "edad": analysis.detalles.get("edad"),
-                    "color_de_pelo": str(analysis.detalles.get("color_de_pelo")),
+                    "color_de_pelo": analysis.detalles.get("color_de_pelo"),
                     "condicion_de_salud_inicial": analysis.detalles.get(
                         "condicion_de_salud_inicial"
                     ),
                     "activo": True,
-                    "fecha_actualizacion": fecha.strftime("%d/%m/%Y"),
-                    "media_url": media_url,
-                    "animal_id": rescue_id,
+                    "fecha_actualizacion": fecha,
                 }
-                analysis.detalles.setdefault("cambio_estado", {})
-                analysis.detalles["cambio_estado"]["animal_id"] = rescue_id
-                analysis.detalles["cambio_estado"]["fecha"] = fecha.strftime(
-                    "%d/%m/%Y %H:%M:%S"
-                )
-                # Insertar registros
-                self.db_service.insert_sheet_from_dict(animal, "ANIMAL")
-                self.db_service.insert_sheet_from_dict(animal, "INTERACCION")
-                self.db_service.insert_sheet_from_dict(
-                    analysis.detalles["cambio_estado"], "EVENTO"
-                )
+
+                # Evento cambio de estado asociado
+                cambio = analysis.detalles.get("cambio_estado", {})
+                cambio_evento = {
+                    "animal_id": rescue_id,
+                    "ubicacion_id": cambio.get("ubicacion_id"),
+                    "estado_id": cambio.get("estado_id"),
+                    "persona": cambio.get("persona"),
+                    "tipo_relacion_id": cambio.get("tipo_relacion_id"),
+                    "fecha": fecha,
+                }
+
+                # Interacción ligera
+                interaccion = {
+                    "animal_id": rescue_id,
+                    "plataforma_id": None,
+                    "usuario": message.get("from"),
+                    "fecha": fecha,
+                    "tipo_interaccion": "nuevo_rescate",
+                    "contenido": analysis.detalles.get("observaciones") or "Nuevo rescate",
+                    "media_url": media_url,
+                }
+
+                # Insertar registros en tablas canónicas
+                self.db_service.insert_sheet_from_dict(animal, "animales")
+                self.db_service.insert_sheet_from_dict(interaccion, "interaccion")
+                self.db_service.insert_sheet_from_dict(cambio_evento, "eventos")
                 return True
             except Exception as e:
                 logger.error(f"Error creando nuevo rescate: {e}")
@@ -120,10 +136,16 @@ class MessageHandler:
         animal_id = self.db_service.check_animal_name_exists(analysis.animal_nombre)
         if animal_id:
             try:
-                analysis.detalles["animal_id"] = animal_id
                 fecha = datetime.fromtimestamp(int(message.get("timestamp")))
-                analysis.detalles["fecha"] = fecha.strftime("%d/%m/%Y %H:%M:%S")
-                self.db_service.insert_sheet_from_dict(analysis.detalles, "EVENTO")
+                evento = {
+                    "animal_id": animal_id,
+                    "ubicacion_id": analysis.detalles.get("ubicacion_id"),
+                    "estado_id": analysis.detalles.get("estado_id"),
+                    "persona": analysis.detalles.get("persona"),
+                    "tipo_relacion_id": analysis.detalles.get("tipo_relacion_id"),
+                    "fecha": fecha,
+                }
+                self.db_service.insert_sheet_from_dict(evento, "eventos")
                 return True
             except Exception as e:
                 logger.error(f"Error creando cambio de estado: {e}")
@@ -142,19 +164,24 @@ class MessageHandler:
         animal_id = self.db_service.check_animal_name_exists(analysis.animal_nombre)
         if animal_id:
             try:
-                analysis.detalles["animal_id"] = animal_id
-                # Usar fecha de analysis si existe, sino timestamp del mensaje
+                # Fecha preferida desde detalles o timestamp
                 if analysis.detalles.get("fecha"):
-                    # Ya tiene fecha, mantenerla
-                    fecha_str = analysis.detalles["fecha"]
+                    fecha = analysis.detalles.get("fecha")
                 else:
-                    # Usar timestamp del mensaje como fallback
                     fecha = datetime.fromtimestamp(int(message.get("timestamp")))
-                    fecha_str = fecha.strftime("%d/%m/%Y %H:%M:%S")
-                    analysis.detalles["fecha"] = fecha_str
-                self.db_service.insert_sheet_from_dict(
-                    analysis.detalles, "VISITA_VETERINARIA"
-                )
+
+                visita = {
+                    "animal_id": animal_id,
+                    "persona_acompanante": analysis.detalles.get("persona_acompanante"),
+                    "fecha": fecha,
+                    "veterinario": analysis.detalles.get("veterinario"),
+                    "diagnostico": analysis.detalles.get("diagnostico"),
+                    "tratamiento": analysis.detalles.get("tratamiento"),
+                    "proxima_cita": analysis.detalles.get("proxima_cita"),
+                    "observaciones": analysis.detalles.get("observaciones"),
+                }
+
+                self.db_service.insert_sheet_from_dict(visita, "visita_veterinario")
                 return True
             except Exception as e:
                 logger.error(f"Error creando visita veterinaria: {e}")
@@ -171,21 +198,44 @@ class MessageHandler:
     async def _create_gasto(self, message, analysis: AIAnalysis, content_list=None):
         """Crear registro de gasto"""
         try:
-            # Usar fecha de analysis si existe, sino timestamp del mensaje
             gasto_id = random.randint(1000000000, 9999999999)
-            analysis.detalles["gasto_id"] = gasto_id
+
+            # Fecha
             if not analysis.detalles.get("fecha"):
                 fecha = datetime.fromtimestamp(int(message.get("timestamp")))
-                analysis.detalles["fecha"] = fecha.strftime("%d/%m/%Y %H:%M:%S")
-            media_url = self.drive_service.save_image(
-                gasto_id, analysis.detalles["fecha"], content_list, "GASTOS"
-            )
-            analysis.detalles["Foto"] = media_url
-            self.db_service.insert_sheet_from_dict(analysis.detalles, "GASTOS")
-            animal_nombre = self.db_service.check_animal_name_exists(analysis.animal_nombre)
-            if analysis.animal_nombre and animal_nombre:
-                analysis.detalles["animal_id"] = animal_nombre
-                self.db_service.insert_sheet_from_dict(analysis.detalles, "GASTO_ANIMAL")
+            else:
+                fecha = analysis.detalles.get("fecha")
+
+            media_url = self.drive_service.save_image(gasto_id, str(fecha), content_list, "GASTOS")
+
+            # Mapear campos al esquema de `gastos`
+            gasto = {
+                "gasto_id": gasto_id,
+                "fecha": fecha,
+                "categoria_id": analysis.detalles.get("categoria_id"),
+                "monto_total": analysis.detalles.get("monto") or analysis.detalles.get("monto_total"),
+                "descripcion": analysis.detalles.get("descripcion"),
+                "proveedor": analysis.detalles.get("proveedor"),
+                "responsable": analysis.detalles.get("responsable"),
+                "forma_de_pago": analysis.detalles.get("forma_de_pago"),
+                "foto": media_url,
+                "id_foto": None,
+            }
+
+            self.db_service.insert_sheet_from_dict(gasto, "gastos")
+
+            animal_id = None
+            if analysis.animal_nombre:
+                animal_id = self.db_service.check_animal_name_exists(analysis.animal_nombre)
+
+            if animal_id:
+                gasto_animal = {
+                    "gasto_id": gasto_id,
+                    "animal_id": animal_id,
+                    "monto_asignado": gasto.get("monto_total"),
+                }
+                self.db_service.insert_sheet_from_dict(gasto_animal, "gasto_animal")
+
             return True
         except Exception as e:
             logger.error(f"Error creando gasto: {e}")
@@ -263,7 +313,7 @@ class MessageHandler:
         }
         # Insertar/actualizar información previa del teléfono en WHATSAPP
         try:
-            self.db_service.insert_sheet_from_dict(phone_info, "WHATSAPP")
+            self.db_service.insert_sheet_from_dict(phone_info, "whatsapp_messages")
         except Exception as e:
             logger.error(f"Error agregando mensaje a la conversación cache: {e}")
     async def _request_missing_fields_from_ai(self, phone: str, analysis: AIAnalysis):
