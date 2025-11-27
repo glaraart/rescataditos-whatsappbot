@@ -3,361 +3,507 @@ import logging
 import json
 import random
 import base64
+from abc import ABC, abstractmethod
 from datetime import datetime
+from app.models.analysis import RawContent, HandlerResult
 from app.models.whatsapp import  AIAnalysis
 from app.services.ai import AIService
+from app.config import settings
 from app.services.postgres import PostgresService
 from app.services.whatsapp import WhatsAppService
 from app.services.drive import DriveService
 
-#from app.services.drive import DriveService
-
 logger = logging.getLogger(__name__)
 
-class MessageHandler:
-    """Handler para procesar diferentes tipos de mensajes de WhatsApp"""
-    def __init__(self):
-        self.ai_service = AIService()
-        self.db_service = PostgresService()
-        self.whatsapp_service = WhatsAppService()
-        self.drive_service = DriveService()
-        # Registry de creadores de registros
-        self.record_creators = {
-            "nuevo_rescate": self._create_nuevo_rescate,
-            "cambio_estado": self._create_cambio_estado,
-            "visita_vet": self._create_visita_vet,
-            "gasto": self._create_gasto,
-            "consulta": self._handle_consulta,
-        }
-    async def process_message(self, message):
-        """Procesa mensaje con contexto de conversación inteligente"""
+
+class MessageHandler(ABC):
+    """Base class para handlers de mensajes WhatsApp"""
+    
+    version: str = "0.1"
+    
+    def __init__(self, ai_service: AIService = None, db_service=None, whatsapp_service=None):
+        self.ai_service = ai_service or AIService()
+        self.db_service = db_service
+        self.whatsapp_service = whatsapp_service
+        self.drive_service = None
+    
+    # ===== ABSTRACT METHODS (cada handler debe implementar) =====
+    
+    @abstractmethod
+    async def analyze(self, raw: RawContent) -> HandlerResult:
+        """Run analysis + extraction for this type."""
+        pass
+
+    @abstractmethod
+    def validate(self, result: HandlerResult) -> HandlerResult:
+        """Validate extracted fields, set campos_faltantes."""
+        pass
+
+    @abstractmethod
+    async def save_to_db(self, result: HandlerResult, db_service) -> bool:
+        """Save the result to database. Return True if successful."""
+        pass
+    
+    # ===== SHARED METHODS (heredadas por todos los handlers) =====
+    
+    async def send_message(self, phone: str, message: str):
+        """Enviar mensaje a WhatsApp"""
+        if self.whatsapp_service:
+            await self.whatsapp_service.send_message(phone, message)
+
+    def delete_records_optimized(self, phone: str, table: str):
+        """Eliminar registros de cache"""
+        if self.db_service:
+            self.db_service.delete_records_optimized(phone, table)
+
+    async def send_completion_confirmation(self, phone: str, tipo: str, result):
+        """Enviar confirmación detallada cuando se completa la información"""
         try:
-            phone = message.get("from")
-            # Agregar mensaje al contexto de conversación
-            self._add_to_conversation(phone, message)
-            # Construir contenido multimodal desde toda la conversación
-            content_list = await self._build_content_from_conversation(phone)
-            logger.info("content_list %s", content_list)
-            # Análisis único con IA multimodal
-            analysis = await self.ai_service.analyze_multimodal(content_list)
-            logger.info("respuesta AI %s", analysis)
-            # Buscar el creador de registro apropiado
-            creator = self.record_creators.get(
-                analysis.tipo_registro, self._handle_unknown_record_type
-            )
-            # Ejecutar el creador correspondiente
-            success = await creator(message, analysis, content_list)
-            if success:
-                await self._send_completion_confirmation(phone, analysis)
-                # Limpiar cache después de procesar - eliminar registros del teléfono
-                self.db_service.delete_records_optimized(phone, "whatsapp_messages")
-            elif not analysis.informacion_completa:
-                # El creator ya envió el mensaje de error específico
-                await self._request_missing_fields_from_ai(phone, analysis)
+            tipo_label = tipo.upper().replace("_", " ")
+            detalles = result.detalles
+            
+            # Extract nombre from detalles if it exists
+            nombre = None
+            if hasattr(detalles, "nombre"):
+                nombre = detalles.nombre
+            
+            nombre_display = nombre or "Sin nombre"
+            
+            mensaje = f"✅ {tipo_label} REGISTRADO EXITOSAMENTE\n"
+            mensaje += f"**Información**: {nombre_display}\n"
+            
+            # Convert Pydantic model to dict for display
+            if hasattr(detalles, "dict"):
+                detalles_dict = detalles.dict(exclude_none=True)
             else:
-                pass
+                detalles_dict = detalles if isinstance(detalles, dict) else {}
+            
+            for detalle_key, detalle_val in detalles_dict.items():
+                if detalle_val is not None and detalle_key != "nombre":
+                    detalle_legible = detalle_key.replace("_", " ").title()
+                    mensaje += f"\n• **{detalle_legible}**: {detalle_val}"
+            
+            await self.send_message(phone, mensaje)
         except Exception as e:
-            logger.error(f"Error procesando mensaje completo: {e}")
-            await self._send_error_response(phone, str(e))
-            raise
-    # ===== CREADORES DE REGISTROS (REGISTRY PATTERN) =====
-    async def _create_nuevo_rescate(self, message, analysis: AIAnalysis, content_list=None):
-        """Crear registro de nuevo rescate"""
-        if analysis.animal_nombre and self.db_service.check_animal_name_exists(
-            analysis.animal_nombre
-        ):
-            await self.whatsapp_service.send_message(
-                message.get("from"),
-                f"❌ Ya existe un animal registrado con el nombre '{analysis.animal_nombre}'. Por favor elige otro nombre.",
-            )
-            return False
-        if analysis.informacion_completa:
-            try:
-                # Generar ID único de 10 dígitos para el rescate
-                rescue_id = random.randint(1000000000, 9999999999)
-                fecha = datetime.fromtimestamp(int(message.get("timestamp")))
-                media_url = self.drive_service.save_image(
-                    rescue_id, analysis.animal_nombre, content_list, "ANIMALES"
-                )
+            logger.error(f"Error enviando confirmación: {e}")
+            await self.send_message(phone, "✅ Información registrada exitosamente.")
 
-                # Dict para tabla `animales`
-                animal = {
-                    "id": rescue_id,
-                    "nombre": analysis.animal_nombre,
-                    "tipo_animal": analysis.detalles.get("tipo_animal"),
-                    "fecha": fecha,
-                    "ubicacion": analysis.detalles.get("ubicacion"),
-                    "edad": analysis.detalles.get("edad"),
-                    "color_de_pelo": analysis.detalles.get("color_de_pelo"),
-                    "condicion_de_salud_inicial": analysis.detalles.get(
-                        "condicion_de_salud_inicial"
-                    ),
-                    "activo": True,
-                    "fecha_actualizacion": fecha,
-                }
-
-                # Evento cambio de estado asociado
-                cambio = analysis.detalles.get("cambio_estado", {})
-                cambio_evento = {
-                    "animal_id": rescue_id,
-                    "ubicacion_id": cambio.get("ubicacion_id"),
-                    "estado_id": cambio.get("estado_id"),
-                    "persona": cambio.get("persona"),
-                    "tipo_relacion_id": cambio.get("tipo_relacion_id"),
-                    "fecha": fecha,
-                }
-
-                # Interacción ligera
-                interaccion = {
-                    "animal_id": rescue_id,
-                    "plataforma_id": None,
-                    "usuario": message.get("from"),
-                    "fecha": fecha,
-                    "tipo_interaccion": "nuevo_rescate",
-                    "contenido": analysis.detalles.get("observaciones") or "Nuevo rescate",
-                    "media_url": media_url,
-                }
-
-                # Insertar registros en tablas canónicas
-                self.db_service.insert_sheet_from_dict(animal, "animales")
-                self.db_service.insert_sheet_from_dict(interaccion, "interaccion")
-                self.db_service.insert_sheet_from_dict(cambio_evento, "eventos")
-                return True
-            except Exception as e:
-                logger.error(f"Error creando nuevo rescate: {e}")
-                await self.whatsapp_service.send_message(
-                    message.get("from"),
-                    "❌ Error interno al crear el rescate. Intenta nuevamente.",
-                )
-                return False
-        return False  # Información incompleta, pero no es un error
-    async def _create_cambio_estado(self, message, analysis: AIAnalysis, content_list=None):
-        """Crear registro de cambio de estado"""
-        animal_id = self.db_service.check_animal_name_exists(analysis.animal_nombre)
-        if animal_id:
-            try:
-                fecha = datetime.fromtimestamp(int(message.get("timestamp")))
-                evento = {
-                    "animal_id": animal_id,
-                    "ubicacion_id": analysis.detalles.get("ubicacion_id"),
-                    "estado_id": analysis.detalles.get("estado_id"),
-                    "persona": analysis.detalles.get("persona"),
-                    "tipo_relacion_id": analysis.detalles.get("tipo_relacion_id"),
-                    "fecha": fecha,
-                }
-                self.db_service.insert_sheet_from_dict(evento, "eventos")
-                return True
-            except Exception as e:
-                logger.error(f"Error creando cambio de estado: {e}")
-                await self.whatsapp_service.send_message(
-                    message.get("from"),
-                    "❌ Error interno al registrar cambio de estado. Intenta nuevamente.",
-                )
-                return False
-        await self.whatsapp_service.send_message(
-            message.get("from"),
-            f"❌ No existe un animal registrado con el nombre '{analysis.animal_nombre}'. Verifica el nombre.",
-        )
-        return False
-    async def _create_visita_vet(self, message, analysis: AIAnalysis, content_list=None):
-        """Crear registro de visita veterinaria"""
-        animal_id = self.db_service.check_animal_name_exists(analysis.animal_nombre)
-        if animal_id:
-            try:
-                # Fecha preferida desde detalles o timestamp
-                if analysis.detalles.get("fecha"):
-                    fecha = analysis.detalles.get("fecha")
-                else:
-                    fecha = datetime.fromtimestamp(int(message.get("timestamp")))
-
-                visita = {
-                    "animal_id": animal_id,
-                    "persona_acompanante": analysis.detalles.get("persona_acompanante"),
-                    "fecha": fecha,
-                    "veterinario": analysis.detalles.get("veterinario"),
-                    "diagnostico": analysis.detalles.get("diagnostico"),
-                    "tratamiento": analysis.detalles.get("tratamiento"),
-                    "proxima_cita": analysis.detalles.get("proxima_cita"),
-                    "observaciones": analysis.detalles.get("observaciones"),
-                }
-
-                self.db_service.insert_sheet_from_dict(visita, "visita_veterinario")
-                return True
-            except Exception as e:
-                logger.error(f"Error creando visita veterinaria: {e}")
-                await self.whatsapp_service.send_message(
-                    message.get("from"),
-                    "❌ Error interno al registrar visita veterinaria. Intenta nuevamente.",
-                )
-                return False
-        await self.whatsapp_service.send_message(
-            message.get("from"),
-            f"❌ No existe un animal registrado con el nombre '{analysis.animal_nombre}'. Verifica el nombre.",
-        )
-        return False
-    async def _create_gasto(self, message, analysis: AIAnalysis, content_list=None):
-        """Crear registro de gasto"""
+    async def request_missing_fields(self, phone: str, tipo: str, result):
+        """Pedir campos faltantes usando directamente la respuesta del handler"""
         try:
-            gasto_id = random.randint(1000000000, 9999999999)
-
-            # Fecha
-            if not analysis.detalles.get("fecha"):
-                fecha = datetime.fromtimestamp(int(message.get("timestamp")))
-            else:
-                fecha = analysis.detalles.get("fecha")
-
-            media_url = self.drive_service.save_image(gasto_id, str(fecha), content_list, "GASTOS")
-
-            # Mapear campos al esquema de `gastos`
-            gasto = {
-                "gasto_id": gasto_id,
-                "fecha": fecha,
-                "categoria_id": analysis.detalles.get("categoria_id"),
-                "monto_total": analysis.detalles.get("monto") or analysis.detalles.get("monto_total"),
-                "descripcion": analysis.detalles.get("descripcion"),
-                "proveedor": analysis.detalles.get("proveedor"),
-                "responsable": analysis.detalles.get("responsable"),
-                "forma_de_pago": analysis.detalles.get("forma_de_pago"),
-                "foto": media_url,
-                "id_foto": None,
-            }
-
-            self.db_service.insert_sheet_from_dict(gasto, "gastos")
-
-            animal_id = None
-            if analysis.animal_nombre:
-                animal_id = self.db_service.check_animal_name_exists(analysis.animal_nombre)
-
-            if animal_id:
-                gasto_animal = {
-                    "gasto_id": gasto_id,
-                    "animal_id": animal_id,
-                    "monto_asignado": gasto.get("monto_total"),
-                }
-                self.db_service.insert_sheet_from_dict(gasto_animal, "gasto_animal")
-
-            return True
-        except Exception as e:
-            logger.error(f"Error creando gasto: {e}")
-            await self.whatsapp_service.send_message(
-                message.get("from"), "❌ Error interno al registrar gasto. Intenta nuevamente."
-            )
-            return False
-    async def _handle_consulta(self, message, analysis: AIAnalysis, content_list=None):
-        """Manejar consulta - solo log"""
-        logger.info(f"Consulta registrada: {analysis.detalles}")
-        phone = message.get("from")
-        respuesta_sugerida = analysis.detalles.get("respuesta_sugerida", "")
-        await self.whatsapp_service.send_message(phone, respuesta_sugerida)
-        return False  # Las consultas siempre son exitosas
-    async def _handle_unknown_record_type(self, message, analysis: AIAnalysis, content_list=None):
-        """Manejar tipos de registro desconocidos"""
-        logger.warning(f"Tipo de registro desconocido: {analysis.tipo_registro}")
-        logger.info(f"Detalles del registro desconocido: {analysis.detalles}")
-        await self.whatsapp_service.send_message(
-            message.get("from"), f"❌ Tipo de registro no reconocido: {analysis.tipo_registro}"
-        )
-        return False
-    async def _handle_audio(self, message) -> str:
-        """Handler para mensajes de audio - retorna texto transcrito"""
-        try:
-            # Convertir audio a texto con Whisper
-            audio_data = message["audio"]
-            media_url = f"https://graph.facebook.com/v22.0/{audio_data['id']}"
-            audio_bytes = await self.whatsapp_service.download_media(media_url)
-            # Convertir audio a texto con Whisper directamente desde bytes
-            text = await self.ai_service.audio_to_text(audio_bytes)
-            return text
-        except Exception as e:
-            logger.error(f"Error procesando mensaje de audio: {e}")
-            return ""  # Retornar string vacío en caso de error
-    # ===== FUNCIONES DE CONTEXTO DE CONVERSACIÓN =====
-    async def _build_content_from_conversation(self, phone: str):
-        """Construye lista de contenido multimodal desde la conversación"""
-        try:
-            phone_info = self.db_service.search_phone_in_whatsapp_sheet(phone)
-            content_list = []
-            context_text = ""
-            for msg in phone_info:
-                if msg.get("type") == "text":
-                    context_text += msg.get("text", {}).get("body", "")
-                elif msg.get("type") == "image":
-                    # Descargar y convertir imagen
-                    image_data = msg["image"]
-                    media_url = f"https://graph.facebook.com/v22.0/{image_data['id']}"
-                    image_bytes = await self.whatsapp_service.download_media(media_url)
-                    base64_image = base64.b64encode(image_bytes).decode()
-                    content_list.append(
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
-                        }
-                    )
-                    # Agregar caption si existe
-                    context_text += image_data.get("caption", "")
-                elif msg.get("type") == "audio":
-                    # Convertir audio a texto y agregarlo como texto
-                    context_text += await self._handle_audio(msg)
-            content_list.append({"type": "text", "text": context_text})
-            return content_list
-        except Exception as e:
-            logger.error(f"Error construyendo contenido de conversación: {e}")
-            return [{"type": "text", "text": "Error procesando conversación"}]
-    def _add_to_conversation(self, phone: str, message_data: dict):
-        """Agregar mensaje al cache de conversación"""
-        now = datetime.now()
-        phone_info = {
-            "phone": phone,
-            "messages": json.dumps(message_data, ensure_ascii=False),  # Convertir a JSON string
-            "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
-        }
-        # Insertar/actualizar información previa del teléfono en WHATSAPP
-        try:
-            self.db_service.insert_sheet_from_dict(phone_info, "whatsapp_messages")
-        except Exception as e:
-            logger.error(f"Error agregando mensaje a la conversación cache: {e}")
-    async def _request_missing_fields_from_ai(self, phone: str, analysis: AIAnalysis):
-        """Pedir campos faltantes usando directamente la respuesta de la IA"""
-        try:
-            # Crear mensaje estructurado basado en lo que la IA identificó
-            tipo_registro = analysis.tipo_registro.replace("_", " ").upper()
+            # Crear mensaje estructurado basado en lo que el handler identificó
+            tipo_registro = tipo.replace("_", " ").upper()
             header = f"📋 **INFORMACIÓN INCOMPLETA - {tipo_registro}**\n\n"
             header += "🔍 **CAMPOS FALTANTES:**\n\n"
             # Convertir la lista de campos faltantes en un mensaje claro
             missing_sections = []
-            for i, campo in enumerate(analysis.campos_faltantes, 1):
+            for i, campo in enumerate(result.campos_faltantes, 1):
                 # Hacer más legible el nombre del campo
                 campo_legible = campo.replace("_", " ").title()
                 missing_sections.append(f"  {i}. **{campo_legible}**")
             campos_text = "\n".join(missing_sections)
             complete_message = header + campos_text
-            await self.whatsapp_service.send_message(phone, complete_message)
+            await self.send_message(phone, complete_message)
             logger.info(
-                f"Solicitados {len(analysis.campos_faltantes)} campos faltantes para {phone}: {analysis.campos_faltantes}"
+                f"Solicitados {len(result.campos_faltantes)} campos faltantes para {phone}: {result.campos_faltantes}"
             )
         except Exception as e:
             logger.error(f"Error pidiendo campos faltantes: {e}")
-            await self.whatsapp_service.send_message(
+            await self.send_message(
                 phone, "📝 Necesito más información para completar el registro. Por favor proporciona más detalles."
             )
-    async def _send_completion_confirmation(self, phone: str, analysis: AIAnalysis):
-        """Enviar confirmación detallada cuando se completa la información"""
-        try:
-            tipo = analysis.tipo_registro.upper().replace("_", " ")
-            detalles = analysis.detalles
-            mensaje = f"{tipo} +  REGISTRADO EXITOSAMENTE\n**Animal**: {analysis.animal_nombre}"
-            for detalle in detalles:
-                mensaje += f"\n• **{detalle.replace('_', ' ').title()}**: {detalles[detalle]}"
-            await self.whatsapp_service.send_message(phone, mensaje)
-        except Exception as e:
-            logger.error(f"Error enviando confirmación: {e}")
-            await self.whatsapp_service.send_message(phone, "✅ Información registrada exitosamente.")
-    async def _send_error_response(self, phone, error_msg: str):
+
+    async def send_error_response(self, phone: str, error_msg: str):
         """Envía respuesta de error al usuario"""
         try:
-            await self.whatsapp_service.send_message(
+            await self.send_message(
                 phone,
                 f"❌ Lo siento, hubo un error procesando tu mensaje:\n{error_msg}\n\nPor favor intenta nuevamente.",
             )
         except Exception as e:
             logger.error(f"Error enviando respuesta de error: {e}")
+
+    async def send_confirmation_request(self, phone: str, tipo: str, result):
+        """Enviar solicitud de confirmación con botones Sí/No antes de guardar en BD"""
+        try:
+            tipo_label = tipo.upper().replace("_", " ")
+            detalles = result.detalles
+            
+            # Extraer nombre si existe
+            nombre = None
+            if hasattr(detalles, "nombre"):
+                nombre = detalles.nombre
+            
+            nombre_display = nombre or "Sin nombre"
+            
+            # Construir mensaje de confirmación
+            mensaje = f"📋 **CONFIRMAR {tipo_label}**\n\n"
+            mensaje += f"**Información a registrar**: {nombre_display}\n\n"
+            mensaje += "**Detalles:**\n"
+            
+            # Convertir Pydantic model a dict para display
+            if hasattr(detalles, "dict"):
+                detalles_dict = detalles.dict(exclude_none=True)
+            else:
+                detalles_dict = detalles if isinstance(detalles, dict) else {}
+            
+            for detalle_key, detalle_val in detalles_dict.items():
+                if detalle_val is not None and detalle_key != "nombre":
+                    detalle_legible = detalle_key.replace("_", " ").title()
+                    mensaje += f"\n• **{detalle_legible}**: {detalle_val}"
+            
+            mensaje += "\n\n¿Deseas confirmar y guardar este registro?"
+            
+            # Enviar mensaje con botones interactivos
+            # WhatsApp usa "reply buttons" o "list items"
+            if self.whatsapp_service:
+                await self.whatsapp_service.send_message_with_buttons(
+                    phone,
+                    mensaje,
+                    buttons=[
+                        {"id": "confirm_yes", "title": "✅ Sí, confirmar"},
+                        {"id": "confirm_no", "title": "❌ No, cancelar"},
+                    ]
+                )
+            else:
+                # Fallback: enviar sin botones
+                await self.send_message(phone, mensaje)
+                
+            logger.info(f"Solicitud de confirmación enviada a {phone} para {tipo}")
+        except Exception as e:
+            logger.error(f"Error enviando solicitud de confirmación: {e}")
+            await self.send_message(phone, "⚠️ Hubo un error. Por favor intenta de nuevo.")
+
+    def prompt_for_missing(self, missing: list) -> str:
+        """Return a user-facing question for missing fields."""
+        return "Por favor, proporciona los siguientes campos: " + ", ".join(missing)
+    
+    async def handle_message_flow(self, phone: str, raw: RawContent, tipo: str):
+        """
+        Executa el flujo completo de procesamiento: analyze → validate → confirmation/request
+        - Si result.ok == True: Enviar solicitud de confirmación con botones
+        - Si result.ok == False: Guardar campos faltantes en whatsapp_messages y pedir
+        """
+        try:
+            # Analizar mensaje
+            result = await self.analyze(raw)
+            result = self.validate(result)
+            
+            logger.info("Handler result: %s", result)
+            
+            # VALIDAR SI LOS DATOS ESTÁN COMPLETOS
+            if result.ok:
+                # Datos completos: solicitar confirmación ANTES de guardar
+                await self.send_confirmation_request(phone, tipo, result)
+            else:
+                # Datos incompletos: guardar campos faltantes en whatsapp_messages
+                self._add_incomplete_request_to_context(phone, tipo, result)
+                # Pedir campos faltantes
+                await self.request_missing_fields(phone, tipo, result)
+                
+            return result
+        except Exception as e:
+            logger.error(f"Error en handle_message_flow: {e}")
+            await self.send_error_response(phone, str(e))
+            raise
+
+
+class MessageProcessorOrchestrator:
+    """Orchestrator para procesar diferentes tipos de mensajes de WhatsApp"""
+    def __init__(self):
+        self.ai_service = AIService()
+        self.db_service = PostgresService()
+        self.whatsapp_service = WhatsAppService()
+        self.drive_service = DriveService()
+        # Map message types to their handler classes
+        # Lazy import to avoid circular dependencies
+        from app.handlers.nuevo_rescate import NuevoRescateHandler
+        from app.handlers.gasto import GastoHandler
+        from app.handlers.visita_vet import VisitaVetHandler
+        from app.handlers.cambio_estado import CambioEstadoHandler
+        from app.handlers.consulta import ConsultaHandler
+        
+        self.handlers = {
+            "NUEVO_RESCATE": NuevoRescateHandler,
+            "GASTO": GastoHandler,
+            "VISITA_VET": VisitaVetHandler,
+            "CAMBIO_ESTADO": CambioEstadoHandler,
+            "CONSULTA": ConsultaHandler,
+        }
+    
+    async def process_message(self, message):
+        """Procesa mensaje con contexto de conversación inteligente.
+        Si hay confirmación pendiente, se ejecuta directamente sin clasificar.
+        """
+        try:
+            phone = message.get("from")
+            # Agregar mensaje al contexto de conversación
+            self._add_to_conversation(phone, message)
+            
+            # Construir RawContent directamente desde la conversación
+            raw = await self.build_history_conversation(phone)
+            logger.info("raw content: %s", raw)
+            
+            # VERIFICAR SI HAY CONFIRMACIÓN PENDIENTE
+            confirmation_status = self._check_pending_confirmation(phone, message)
+            
+            if confirmation_status and confirmation_status["confirmed"]:
+                # El usuario confirmó: ir directo a save_to_db sin clasificar
+                logger.info(f"Confirmación detectada para {phone}. Tipo: {confirmation_status['tipo']}")
+                
+                tipo = confirmation_status["tipo"]
+                result = confirmation_status["result"]
+                
+                # Instanciar handler con servicios compartidos
+                handler_cls = self.handlers[tipo]
+                handler = handler_cls(
+                    ai_service=self.ai_service,
+                    db_service=self.db_service,
+                    whatsapp_service=self.whatsapp_service
+                )
+                
+                # Guardar directamente en BD (sin pasar por handle_message_flow)
+                try:
+                    success = await handler.save_to_db(result, self.db_service)
+                    if success:
+                        await handler.send_completion_confirmation(phone, tipo, result)
+                        # Limpiar cache después de procesar
+                        self.db_service.delete_records_optimized(phone, "whatsapp_messages")
+                    else:
+                        await handler.send_error_response(phone, "Error al guardar en la base de datos")
+                except Exception as e:
+                    logger.error(f"Error al guardar confirmación: {e}")
+                    await handler.send_error_response(phone, str(e))
+                
+                return
+            
+            elif confirmation_status and not confirmation_status["confirmed"]:
+                # El usuario canceló: enviar mensaje de cancelación
+                logger.info(f"Cancelación detectada para {phone}")
+                await self.whatsapp_service.send_message(
+                    phone,
+                    "❌ Registro cancelado. ¿Deseas intentar de nuevo o realizar otra solicitud?"
+                )
+                return
+            
+            # FLUJO NORMAL: Clasificar y procesar
+            # Clasificar
+            classification = await self.ai_service.classify(raw)
+            tipo = classification.tipo
+            
+            if not tipo or tipo not in self.handlers:
+                logger.warning("No handler found for tipo=%s for phone=%s", tipo, phone)
+                await self.whatsapp_service.send_message(
+                    phone,
+                    "❌ No pude procesar tu solicitud. Intenta de nuevo o contacta a soporte."
+                )
+                return
+            
+            # Instanciar handler con servicios compartidos
+            handler_cls = self.handlers[tipo]
+            handler = handler_cls(
+                ai_service=self.ai_service,
+                db_service=self.db_service,
+                whatsapp_service=self.whatsapp_service
+            )
+            
+            # Delegar al handler el flujo de procesamiento
+            await handler.handle_message_flow(phone, raw, tipo)
+                
+        except Exception as e:
+            logger.error(f"Error procesando mensaje completo: {e}")
+            phone = message.get("from")
+            await self.whatsapp_service.send_message(
+                phone,
+                f"❌ Lo siento, hubo un error procesando tu mensaje:\n{str(e)}\n\nPor favor intenta nuevamente.",
+            )
+            raise
+    
+    # ===== HELPER METHODS (para orchestrator) =====
+    
+    async def _handle_audio(self, message) -> str:
+        """Handler para mensajes de audio - retorna texto transcrito"""
+        try:
+            audio_data = message["audio"]
+            media_url = f"https://graph.facebook.com/v22.0/{audio_data['id']}"
+            audio_bytes = await self.whatsapp_service.download_media(media_url)
+            text = await self.ai_service.audio_to_text(audio_bytes)
+            return text
+        except Exception as e:
+            logger.error(f"Error procesando mensaje de audio: {e}")
+            return ""
+
+    def _check_pending_confirmation(self, phone: str, current_message: dict):
+        """
+        Revisa si hay una solicitud de confirmación pendiente en el historial.
+        Retorna:
+        - None: No hay confirmación pendiente
+        - {"confirmed": True, "tipo": "...", "result": ...}: Usuario confirmó (presionó Sí)
+        - {"confirmed": False, "tipo": "...", "result": ...}: Usuario canceló (presionó No)
+        """
+        try:
+            phone_info = self.db_service.search_phone_in_whatsapp_sheet(phone)
+            
+            if not phone_info:
+                return None
+            
+            # Buscar la última solicitud incompleta (pending confirmation)
+            pending_incomplete_request = None
+            
+            for msg in phone_info:
+                if msg.get("type") == "incomplete_request":
+                    # Encontrar la más reciente
+                    pending_incomplete_request = msg
+            
+            if not pending_incomplete_request:
+                return None
+            
+            # Si encontramos un pending_incomplete_request, revisar si el mensaje actual es una confirmación
+            # Detectar si el mensaje contiene palabras clave de confirmación
+            current_text = ""
+            
+            if current_message.get("type") == "text":
+                current_text = current_message.get("text", {}).get("body", "").lower()
+            
+            # Palabras clave para confirmación
+            confirmacion_palabras = ["sí", "si", "yes", "yep", "ok", "okay", "confirmar", "confirm", "adelante", "go"]
+            cancelacion_palabras = ["no", "nope", "cancelar", "cancel", "no gracias", "no thanks", "abortar"]
+            
+            # También detectar si es respuesta de botón
+            is_confirm_button = (
+                current_message.get("type") == "interactive" and
+                current_message.get("interactive", {}).get("button_reply", {}).get("id") == "confirm_yes"
+            )
+            
+            is_cancel_button = (
+                current_message.get("type") == "interactive" and
+                current_message.get("interactive", {}).get("button_reply", {}).get("id") == "confirm_no"
+            )
+            
+            confirmed = is_confirm_button or any(palabra in current_text for palabra in confirmacion_palabras)
+            cancelled = is_cancel_button or any(palabra in current_text for palabra in cancelacion_palabras)
+            
+            if not confirmed and not cancelled:
+                # No es una respuesta de confirmación/cancelación
+                return None
+            
+            # Reconstruir el result desde pending_incomplete_request
+            tipo_solicitud = pending_incomplete_request.get("tipo_solicitud", "")
+            detalles_parciales = pending_incomplete_request.get("detalles_parciales", {})
+            
+            if confirmed:
+                logger.info(f"Confirmación detectada para {phone}: {tipo_solicitud}")
+                
+                # Crear un HandlerResult con los detalles
+                # Nota: Necesitamos reconstruir el result correcto
+                # Por ahora, retornar información para que el handler lo reconstruya
+                return {
+                    "confirmed": True,
+                    "tipo": tipo_solicitud,
+                    "detalles_parciales": detalles_parciales,
+                    "result": None  # Placeholder - el handler debe reconstruir esto
+                }
+            
+            elif cancelled:
+                logger.info(f"Cancelación detectada para {phone}: {tipo_solicitud}")
+                return {
+                    "confirmed": False,
+                    "tipo": tipo_solicitud,
+                    "detalles_parciales": detalles_parciales,
+                    "result": None
+                }
+        
+        except Exception as e:
+            logger.error(f"Error verificando confirmación pendiente: {e}")
+            return None
+    
+    async def build_history_conversation(self, phone: str):
+        """Construye RawContent desde el historial de conversación, incluyendo solicitudes incompletas"""
+        try:
+            phone_info = self.db_service.search_phone_in_whatsapp_sheet(phone)
+            images = []
+            context_text = ""
+            
+            if not phone_info:
+                return RawContent(phone=phone, text="", images=[])
+            
+            for msg in phone_info:
+                if msg.get("type") == "text":
+                    context_text += msg.get("text", {}).get("body", "")
+                elif msg.get("type") == "image":
+                    image_data = msg["image"]
+                    media_url = f"https://graph.facebook.com/v22.0/{image_data['id']}"
+                    image_bytes = await self.whatsapp_service.download_media(media_url)
+                    base64_image = base64.b64encode(image_bytes).decode()
+                    images.append({
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+                    })
+                    context_text += msg["image"].get("caption", "")
+                elif msg.get("type") == "audio":
+                    context_text += await self._handle_audio(msg)
+                elif msg.get("type") == "incomplete_request":
+                    # Incluir contexto de solicitud incompleta anterior
+                    tipo_sol = msg.get("tipo_solicitud", "")
+                    campos_falt = msg.get("campos_faltantes", [])
+                    detalles_parc = msg.get("detalles_parciales", {})
+                    
+                    # Agregar al contexto los datos que ya teníamos
+                    context_text += f"\n[SOLICITUD ANTERIOR: {tipo_sol} - INCOMPLETA]\n"
+                    context_text += f"Datos ya proporcionados: {json.dumps(detalles_parc, ensure_ascii=False)}\n"
+                    context_text += f"Campos faltantes anteriormente: {', '.join(campos_falt)}\n"
+            
+            return RawContent(phone=phone, text=context_text, images=images)
+        except Exception as e:
+            logger.error(f"Error construyendo historial: {e}")
+            return RawContent(phone=phone, text="Error procesando conversación", images=[])
+    
+    def _add_incomplete_request_to_context(self, phone: str, tipo: str, result: HandlerResult):
+        """
+        Guarda una solicitud incompleta en whatsapp_messages para mantener contexto.
+        Permite que futuros mensajes sepan qué campos faltaban.
+        """
+        now = datetime.now()
+        
+        # Construir datos parciales que se extrajeron
+        detalles_parciales = {}
+        if result.detalles and hasattr(result.detalles, "dict"):
+            detalles_parciales = result.detalles.dict(exclude_none=True)
+        
+        # Mensaje que almacena el estado incompleto
+        incomplete_data = {
+            "type": "incomplete_request",
+            "tipo_solicitud": tipo,
+            "detalles_parciales": detalles_parciales,
+            "campos_faltantes": result.campos_faltantes,
+            "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        
+        phone_info = {
+            "phone": phone,
+            "messages": json.dumps(incomplete_data, ensure_ascii=False),
+            "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        
+        try:
+            self.db_service.insert_record(phone_info, "whatsapp_messages")
+            logger.info(
+                f"Solicitud incompleta guardada en contexto para {phone}: "
+                f"tipo={tipo}, campos_faltantes={result.campos_faltantes}"
+            )
+        except Exception as e:
+            logger.error(f"Error guardando solicitud incompleta en contexto: {e}")
+    
+    def _add_to_conversation(self, phone: str, message_data: dict):
+        """Agregar mensaje al cache de conversación"""
+        now = datetime.now()
+        phone_info = {
+            "phone": phone,
+            "messages": json.dumps(message_data, ensure_ascii=False),
+            "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        # Insertar/actualizar información previa del teléfono en WHATSAPP
+        try:
+            self.db_service.insert_record(phone_info, "whatsapp_messages")
+        except Exception as e:
+            logger.error(f"Error agregando mensaje a la conversación cache: {e}")

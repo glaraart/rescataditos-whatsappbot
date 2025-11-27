@@ -33,5 +33,7 @@ class Settings:
     HOST = os.getenv("HOST")
     PORT_DB = os.getenv("PORT_DB")
     DBNAME = os.getenv("DBNAME")
+    # Dispatcher mode: 'shadow' (run but don't write) or 'live' (apply DB writes)
+    NEW_DISPATCHER_MODE: str = os.getenv("NEW_DISPATCHER_MODE", "shadow")
 
 settings = Settings()

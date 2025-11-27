@@ -13,7 +13,7 @@ class PostgresService:
     """Simple psycopg2-based service implementing minimal methods used by MessageHandler.
 
     Methods:
-      - insert_sheet_from_dict(data, table_name)
+      - insert_record(data, table_name)
       - search_phone_in_whatsapp_sheet(phone) -> list of messages
       - delete_records_optimized(phone, table_name)
       - check_animal_name_exists(nombre) -> id or None
@@ -37,7 +37,7 @@ class PostgresService:
         )
         return conn
 
-    def insert_sheet_from_dict(self, data: Dict[str, Any], table_name: str) -> bool:
+    def insert_record(self, data: Dict[str, Any], table_name: str) -> bool:
         """Insert a row into the given table_name mapping dict keys to columns."""
         try:
             conn = self._connect()
@@ -61,35 +61,50 @@ class PostgresService:
 
     def search_phone_in_whatsapp_sheet(self, phone: str) -> Optional[List[Dict[str, Any]]]:
         """Return list of recent messages for phone from whatsapp_messages table.
-        This mirrors SheetsService behaviour returning parsed message dicts.
+        Includes regular messages and incomplete_request entries.
+        Returns parsed message dicts with proper handling of incomplete requests.
         """
         try:
             conn = self._connect()
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            sql = "SELECT messages FROM whatsapp_messages WHERE phone = %s"
+            # Get all messages ordered by timestamp to maintain conversation flow
+            sql = "SELECT messages FROM whatsapp_messages WHERE phone = %s ORDER BY timestamp ASC"
             cur.execute(sql, (phone,))
-            row = cur.fetchone()
+            rows = cur.fetchall()
             cur.close()
             conn.close()
-            if not row:
+            
+            if not rows:
                 return None
-            messages = row['messages']
-            # messages may be stored as JSON array or newline-separated
-            try:
-                parsed = json.loads(messages)
-                if isinstance(parsed, list):
-                    return parsed
-                else:
-                    return [parsed]
-            except Exception:
-                # fallback split by newline
-                out = []
-                for part in messages.split('\n'):
+            
+            all_messages = []
+            
+            # Process each row and parse JSON
+            for row in rows:
+                messages = row['messages']
+                try:
+                    # Try parsing as JSON
+                    parsed = json.loads(messages)
+                    if isinstance(parsed, list):
+                        all_messages.extend(parsed)
+                    else:
+                        all_messages.append(parsed)
+                except Exception:
+                    # Fallback: treat as string or newline-separated
                     try:
-                        out.append(json.loads(part))
+                        for part in messages.split('\n'):
+                            if part.strip():
+                                try:
+                                    all_messages.append(json.loads(part))
+                                except Exception:
+                                    # Plain text message
+                                    all_messages.append({"type": "text", "text": {"body": part}})
                     except Exception:
-                        out.append(part)
-                return out
+                        # Last resort: treat entire thing as text
+                        all_messages.append({"type": "text", "text": {"body": messages}})
+            
+            # Return in reverse order (oldest first for context building)
+            return list(reversed(all_messages)) if all_messages else None
 
         except Exception as e:
             logger.error(f"Error buscando teléfono {phone} en Postgres: {e}")
