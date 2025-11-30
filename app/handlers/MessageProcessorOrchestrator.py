@@ -64,6 +64,10 @@ class MessageProcessorOrchestrator:
             classification = await self.ai_service.classify(raw)
             tipo = classification.tipo
             
+            # Convertir a mayúsculas para coincidir con los handlers
+            if tipo:
+                tipo = tipo.upper()
+            
             # Validar tipo y delegar TODO al handler
             if not tipo or tipo not in self.handlers:
                 logger.warning(f"No handler para tipo={tipo}, phone={phone}")
