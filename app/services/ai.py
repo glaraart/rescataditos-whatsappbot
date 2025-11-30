@@ -126,22 +126,15 @@ class AIService:
         Devuelve el texto crudo de la respuesta del modelo.
         """
         template_path = os.path.join(self.prompts_dir, template_name)
-        if not os.path.exists(template_path):
-            raise FileNotFoundError(f"Prompt template not found: {template_name}")
-
+      
         with open(template_path, "r", encoding="utf-8") as f:
-            template = f.read()
-
-        # Reemplazar variables manualmente para evitar conflicto con {} en JSON
-        prompt_text = template
-        for key, value in context.items():
-            prompt_text = prompt_text.replace(f"{{{key}}}", str(value))
+            system_prompt = f.read()
         
         logger.info(f"🤖 Llamando AI con prompt: {template_name}, texto: {context.get('text', '')[:100]}")
 
         try:
             # Build user content with text + images
-            user_content = [{"type": "text", "text": prompt_text}]
+            user_content = [{"type": "text", "text": context.get("text", "")}]
             
             # Add images if provided
             if images:
@@ -150,7 +143,10 @@ class AIService:
             
             response = await self.client.chat.completions.create(
                 model="gpt-5.1",
-                messages=[{"role": "user", "content": user_content}],
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content}
+                ],
                 temperature=0.0,
             )
 
