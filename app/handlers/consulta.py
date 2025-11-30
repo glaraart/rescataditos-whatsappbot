@@ -79,3 +79,16 @@ class ConsultaHandler(MessageHandler):
             
         except Exception as e:
             await self.send_error_response(phone, str(e))
+    
+    # Métodos abstractos requeridos (no usados en consultas)
+    def validate(self, result: HandlerResult) -> HandlerResult:
+        """No usado en consultas"""
+        return result
+    
+    async def save_to_db(self, result: HandlerResult, db_service, raw: RawContent = None) -> bool:
+        """No usado en consultas"""
+        return True
+    
+    def reconstruct_result(self, detalles_parciales: dict) -> HandlerResult:
+        """No usado en consultas"""
+        return HandlerResult(detalles=None, ok=True, campos_faltantes=[])
