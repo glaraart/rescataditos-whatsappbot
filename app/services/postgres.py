@@ -68,7 +68,7 @@ class PostgresService:
             conn = self._connect()
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             # Get all messages ordered by timestamp to maintain conversation flow
-            sql = "SELECT messages FROM whatsapp_messages WHERE phone = %s ORDER BY timestamp ASC"
+            sql = "SELECT messages FROM whatsapp_messages WHERE phone = %s AND timestamp >= current_date - interval '5 minutes' ORDER BY timestamp ASC"
             cur.execute(sql, (phone,))
             rows = cur.fetchall()
             cur.close()

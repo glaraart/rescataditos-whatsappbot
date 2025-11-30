@@ -76,7 +76,6 @@ class AIService:
                     {"role": "system", "content": classifier_prompt},
                     {"role": "user", "content": user_content}
                 ],
-                max_tokens=50,
                 temperature=0.0,
             )
             
