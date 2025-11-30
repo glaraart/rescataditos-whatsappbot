@@ -62,12 +62,22 @@ async def whatsapp_webhook(request: Request):
         # Procesar cada entrada
         for entry in data["entry"]:
             for change in entry["changes"]:
-                for message_data in change.get("value", {}).get("messages", []):
+                value = change.get("value", {})
+                
+                # Ignorar notificaciones de estado (sent, delivered, read)
+                if "statuses" in value:
+                    logger.info("⏭️ Ignorando notificación de estado")
+                    continue
+                
+                # Procesar solo mensajes entrantes del usuario
+                messages = value.get("messages", [])
+                for message_data in messages:
                     # Procesar mensaje secuencialmente
                     message_id = message_data.get('id', 'unknown')
                     logger.info(f"🔄 Procesando mensaje ID: {message_id}")
                     await process_single_message(message_data)
                     logger.info(f"✅ Mensaje {message_id} procesado")
+        
         return {"status": "received"}
         
     except json.JSONDecodeError:
