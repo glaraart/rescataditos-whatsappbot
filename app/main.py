@@ -9,9 +9,7 @@ import logging
 import uvicorn
 from fastapi import FastAPI, Request, HTTPException, Query
 from fastapi.responses import PlainTextResponse
-from app.config import settings
-# ===== HANDLERS =====
-from app.handlers.message_handler import MessageHandler 
+from app.config import settings 
 
 # Configurar logging
 logging.basicConfig(
@@ -76,9 +74,11 @@ async def whatsapp_webhook(request: Request):
 # ===== PROCESAMIENTO DE MENSAJES =====
 async def process_single_message(message_data: dict):
     """Procesa un solo mensaje de WhatsApp de forma asíncrona"""
-        # Procesar mensaje completo (análisis + resultado + respuesta automática)
-    message_handler = MessageHandler()    
-    await message_handler.process_message(message_data)
+    from app.handlers.MessageProcessorOrchestrator import MessageProcessorOrchestrator
+    
+    # Procesar mensaje completo (análisis + resultado + respuesta automática)
+    orchestrator = MessageProcessorOrchestrator()
+    await orchestrator.process_message(message_data)
  
 
 # ===== PUNTO DE ENTRADA =====

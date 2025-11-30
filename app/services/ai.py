@@ -5,7 +5,6 @@ import tempfile
 import re
 from typing import Optional
 from app.config import settings
-from app.models.whatsapp import AIAnalysis
 from app.models.analysis import RawContent, ClassificationResult
 from openai import AsyncOpenAI
 
@@ -21,13 +20,6 @@ class AIService:
             raise ValueError("OPENAI_API_KEY no configurada")
 
         self.client = AsyncOpenAI(api_key=self.api_key)
-
-        # Prompt base para análisis de rescate
-        self.rescue_prompt = (
-            "Eres un asistente que ayuda a rescatistas de animales.\n"
-            "Debes clasificar el mensaje en uno de estos tipos y extraer toda la información disponible en la imagen y en el texto.\n"
-            "Responde SOLO con JSON siguiendo las reglas especificadas."
-        )
 
         # directory for prompt templates
         self.prompts_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "prompts"))
@@ -56,12 +48,12 @@ class AIService:
         """
         Classify raw content using rules first, then LLM as fallback.
         Considers text AND images for better classification.
-        Returns a ClassificationResult with tipo, score, and reasons.
+        Returns a ClassificationResult with tipo.
         """
         # 1. try fast rules on text first
         label = self._apply_rules(raw.text)
         if label:
-            return ClassificationResult(tipo=label, score=0.8, reasons=["rules"])
+            return ClassificationResult(tipo=label)
 
         # 2. fallback to LLM classifier prompt with multimodal content (single call)
         try:
@@ -73,14 +65,9 @@ class AIService:
             # Build user message with text and images
             user_content = [{"type": "text", "text": raw.text or ""}]
             
-            # Add images if available
+            # Add images if available (raw.images ya está en el formato correcto)
             if raw.images:
-                for img in raw.images:
-                    if isinstance(img, dict) and "image_url" in img:
-                        user_content.append({
-                            "type": "image_url",
-                            "image_url": img["image_url"]
-                        })
+                user_content.extend(raw.images)
             
             # Single call to LLM with classifier prompt
             response = await self.client.chat.completions.create(
@@ -95,12 +82,12 @@ class AIService:
             
             label = response.choices[0].message.content.strip().lower()
             if label == "null":
-                return ClassificationResult(tipo=None, score=0.0, reasons=["llm_null"])
-            return ClassificationResult(tipo=label, score=0.6, reasons=["llm_multimodal"])
+                return ClassificationResult(tipo=None)
+            return ClassificationResult(tipo=label)
             
         except Exception as e:
             logger.error(f"Error in classification: {e}")
-            return ClassificationResult(tipo=None, score=0.0, reasons=["llm_error"])
+            return ClassificationResult(tipo=None)
 
     async def audio_to_text(self, audio_file: bytes) -> str:
         """Convierte audio a texto usando Whisper de OpenAI"""
@@ -168,16 +155,3 @@ class AIService:
         except Exception as e:
             logger.error(f"Error running prompt {template_name}: {e}")
             raise
-
-    def _create_fallback_analysis(self, original_content: str, error_message: str) -> AIAnalysis:
-        """Crea análisis de respaldo cuando falla el procesamiento principal"""
-        return AIAnalysis(
-            tipo_registro="consulta",
-            animal_nombre=None,
-            confianza=0.0,
-            detalles={
-                "error": error_message,
-                "contenido_original": original_content[:200],
-                "procesamiento": "fallback",
-            },
-        )

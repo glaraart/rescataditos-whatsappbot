@@ -15,13 +15,8 @@ CAMPOS OPCIONALES (TODOS):
 - respuesta_sugerida: Respuesta breve y útil si puedes darla, sino null
 
 NOMBRE:
-- Nombre del animal SI se menciona específicamente
+- Nombre del animal si se menciona específicamente
 - null si es pregunta general sin animal
-
-INFORMACIÓN_COMPLETA:
-- true: siempre para CONSULTA (es información informativa)
-- false: nunca
-- campos_faltantes: [] (siempre vacío para CONSULTA)
 
 CATEGORÍAS DE TEMAS (identificar):
 1. Esterilización/Castración: "¿Cómo hago para esterilizar?", "A qué edad castrar?"

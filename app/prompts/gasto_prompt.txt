@@ -57,14 +57,8 @@ CAMPOS OPCIONALES:
 - forma_de_pago: Método usado ("efectivo", "tarjeta de débito", "transferencia")
 
 NOMBRE:
-- Nombre del animal SI se especifica en el gasto ("comida para Luna")
+- Nombre del animal si se especifica en el gasto ("comida para Luna")
 - null si es gasto general sin animal específico
-- Es opcional para GASTO
-
-INFORMACIÓN_COMPLETA:
-- true: cuando los 3 campos obligatorios (monto, fecha, categoria_id) tienen valor
-- false: cuando al menos UNO de los obligatorios es null
-- campos_faltantes: lista de los campos obligatorios que quedaron null
 
 EJEMPLOS DE RESPUESTA:
 

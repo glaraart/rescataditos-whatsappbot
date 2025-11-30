@@ -1,34 +1,20 @@
 import json
+import logging
 from app.handlers.message_handler import MessageHandler
 from app.models.analysis import RawContent, HandlerResult, GastoDetails
 from app.services.ai import AIService
 from datetime import datetime
 
+logger = logging.getLogger(__name__)
+
 
 class GastoHandler(MessageHandler):
     version = "0.1"
+    prompt_file = "gasto_prompt.txt"
+    details_class = GastoDetails
 
-    def __init__(self, ai_service: AIService = None, db_service=None, whatsapp_service=None):
-        super().__init__(ai_service=ai_service, db_service=db_service, whatsapp_service=whatsapp_service)
-        self.ai = self.ai_service
-
-    async def analyze(self, raw: RawContent) -> HandlerResult:
-        # Prompt tailored for gastos with multimodal support
-        try:
-            resp_text = await self.ai.run_prompt(
-                "gasto_prompt.txt", 
-                {"text": raw.text or ""}, 
-                images=raw.images
-            )
-            data = json.loads(resp_text)
-            detalles = GastoDetails(**data)
-        except Exception:
-            detalles = None
-
-        hr = HandlerResult()
-        hr.detalles = detalles
-        hr.confidence = 0.9 if detalles else 0.0
-        return hr
+    def __init__(self, ai_service: AIService = None, db_service=None, whatsapp_service=None, confirmation_manager=None):
+        super().__init__(ai_service=ai_service, db_service=db_service, whatsapp_service=whatsapp_service, confirmation_manager=confirmation_manager)
 
     def validate(self, result: HandlerResult) -> HandlerResult:
         if not isinstance(result.detalles, GastoDetails):
@@ -45,11 +31,7 @@ class GastoHandler(MessageHandler):
         result.ok = len(missing) == 0
         return result
 
-    def to_db_records(self, result: HandlerResult) -> dict:
-        """Abstract method - not used in this implementation"""
-        pass
-
-    async def save_to_db(self, result: HandlerResult, db_service) -> bool:
+    async def save_to_db(self, result: HandlerResult, db_service, raw: RawContent = None) -> bool:
         """Save gasto record to database. Only called when result.ok == True."""
         # Validation of result.ok is done in handle_message_flow()
         if not isinstance(result.detalles, GastoDetails):
@@ -67,6 +49,23 @@ class GastoHandler(MessageHandler):
         elif not fecha:
             fecha = datetime.now()
         
+        # Subir imágenes a Drive si hay (recibo/comprobante)
+        image_url = None
+        drive_file_id = None
+        if raw and raw.images and self.drive_service:
+            try:
+                descripcion = datos.descripcion or "gasto"
+                # Usar timestamp numérico como ID único
+                gasto_id = int(datetime.now().strftime("%Y%m%d%H%M%S"))
+                image_url = await self.drive_service.save_image(
+                    gasto_id, descripcion, raw.images, "GASTOS"
+                )
+                # Extraer el file ID de la URL: https://drive.google.com/uc?id={file_id}
+                if image_url and "id=" in image_url:
+                    drive_file_id = image_url.split("id=")[1]
+            except Exception as e:
+                logger.error(f"Error subiendo imagen a Drive: {e}")
+        
         try:
             gasto_record = {
                 "gasto_id": None,
@@ -77,10 +76,20 @@ class GastoHandler(MessageHandler):
                 "proveedor": datos.proveedor,
                 "responsable": datos.responsable,
                 "forma_de_pago": datos.forma_de_pago,
-                "foto": None,
-                "id_foto": None,
+                "foto": image_url,  # URL de Drive
+                "id_foto": drive_file_id,  # ID del archivo en Drive
             }
             gasto_ok = db_service.insert_record(gasto_record, "gastos")
             return gasto_ok
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error guardando gasto: {e}")
             return False
+    
+    def reconstruct_result(self, detalles_parciales: dict) -> HandlerResult:
+        """Reconstruye HandlerResult desde confirmación pendiente"""
+        try:
+            detalles = GastoDetails(**detalles_parciales)
+            result = HandlerResult(detalles=detalles)
+            return self.validate(result)
+        except Exception as e:
+            return HandlerResult(detalles=None, ok=False, campos_faltantes=["Error al reconstruir datos"])

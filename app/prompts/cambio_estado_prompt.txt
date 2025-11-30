@@ -48,14 +48,8 @@ REGLAS PARA PERSONA:
 - Maximizar información: "Dr. López de la clínica Veterinaria Plus"
 
 NOMBRE:
-- Siempre es el nombre del animal
-- Si no aparece, usar null
-- El nombre es el identificador del animal en el sistema
-
-INFORMACIÓN_COMPLETA:
-- true: cuando TODOS los 4 campos obligatorios tienen valor numérico o texto válido
-- false: cuando al menos UN campo obligatorio quedó en null
-- campos_faltantes: lista de campos que quedaron en null o vacíos
+- Nombre del animal
+- null si no aparece en el mensaje
 
 EJEMPLOS DE RESPUESTA:
 

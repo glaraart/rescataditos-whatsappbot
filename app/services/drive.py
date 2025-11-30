@@ -20,18 +20,38 @@ class DriveService:
             # Initialize Drive API service
         self.service = build('drive', 'v3', credentials=self.creds)
     
-    async def save_image( self ,rescue_id ,nombre , content_list, folder):
-
-        drive_folder = self.drive_animales  if folder == "ANIMALES" else self.drive_gastos
+    async def save_image(self, rescue_id, nombre, content_list, folder):
+        """Itera sobre content_list y sube la primera imagen encontrada"""
+        drive_folder = self.drive_animales if folder == "ANIMALES" else self.drive_gastos
+        
         for item in content_list:
-            if item.get("type") == "image_url":
+            # Formato esperado por raw.images: {id, url, caption}
+            if item.get("url"):
+                url = item["url"]
+                base64_image = url.split(",")[1] if "," in url else url
+                image_bytes = base64.b64decode(base64_image)
+                
+                media = MediaIoBaseUpload(BytesIO(image_bytes), mimetype="image/jpeg")
+                file_metadata = {"name": f"{nombre}_{rescue_id}", "parents": [drive_folder]}
+                
+                archivo = self.service.files().create(
+                    body=file_metadata,
+                    media_body=media,
+                    fields="id"
+                ).execute()
+                file_id = archivo["id"]
+                public_url = f"https://drive.google.com/uc?id={file_id}"
+                
+                return public_url
+            
+            # Formato antiguo por compatibilidad
+            elif item.get("type") == "image_url":
                 url = item["image_url"]["url"]
-                base64_image = url.split(",")[1]   # SEPARA EL PREFIJO
-                image_bytes = base64.b64decode(base64_image) 
+                base64_image = url.split(",")[1]
+                image_bytes = base64.b64decode(base64_image)
                  
                 media = MediaIoBaseUpload(BytesIO(image_bytes), mimetype="image/jpeg")
-
-                file_metadata = {"name": nombre+" "+rescue_id, "parents": [drive_folder]}
+                file_metadata = {"name": f"{nombre}_{rescue_id}", "parents": [drive_folder]}
 
                 archivo = self.service.files().create(
                     body=file_metadata,
@@ -39,8 +59,9 @@ class DriveService:
                     fields="id"
                 ).execute()
                 file_id = archivo["id"]
-                # URL que pedís
                 public_url = f"https://drive.google.com/uc?id={file_id}"
 
                 return public_url
+        
+        return None
 

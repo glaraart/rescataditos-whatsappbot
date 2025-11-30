@@ -6,27 +6,11 @@ from app.services.ai import AIService
 
 class VisitaVetHandler(MessageHandler):
     version = "0.1"
+    prompt_file = "visita_vet_prompt.txt"
+    details_class = VisitaVetDetails
 
-    def __init__(self, ai_service: AIService = None, db_service=None, whatsapp_service=None):
-        super().__init__(ai_service=ai_service, db_service=db_service, whatsapp_service=whatsapp_service)
-        self.ai = self.ai_service
-
-    async def analyze(self, raw: RawContent) -> HandlerResult:
-        try:
-            resp_text = await self.ai.run_prompt(
-                "visita_vet_prompt.txt", 
-                {"text": raw.text or ""}, 
-                images=raw.images
-            )
-            data = json.loads(resp_text)
-            detalles = VisitaVetDetails(**data)
-        except Exception:
-            detalles = None
-
-        hr = HandlerResult()
-        hr.detalles = detalles
-        hr.confidence = 0.8 if detalles else 0.0
-        return hr
+    def __init__(self, ai_service: AIService = None, db_service=None, whatsapp_service=None, confirmation_manager=None):
+        super().__init__(ai_service=ai_service, db_service=db_service, whatsapp_service=whatsapp_service, confirmation_manager=confirmation_manager)
 
     def validate(self, result: HandlerResult) -> HandlerResult:
         if not isinstance(result.detalles, VisitaVetDetails):
@@ -39,11 +23,7 @@ class VisitaVetHandler(MessageHandler):
         result.ok = True
         return result
 
-    def to_db_records(self, result: HandlerResult) -> dict:
-        """Abstract method - not used in this implementation"""
-        pass
-
-    async def save_to_db(self, result: HandlerResult, db_service) -> bool:
+    async def save_to_db(self, result: HandlerResult, db_service, raw: RawContent = None) -> bool:
         """Save visita_veterinario record to database. Only called when result.ok == True."""
         # Validation of result.ok is done in handle_message_flow()
         if not isinstance(result.detalles, VisitaVetDetails):
@@ -64,4 +44,13 @@ class VisitaVetHandler(MessageHandler):
             return visita_ok
         except Exception:
             return False
+    
+    def reconstruct_result(self, detalles_parciales: dict) -> HandlerResult:
+        """Reconstruye HandlerResult desde confirmación pendiente"""
+        try:
+            detalles = VisitaVetDetails(**detalles_parciales)
+            result = HandlerResult(detalles=detalles)
+            return self.validate(result)
+        except Exception as e:
+            return HandlerResult(detalles=None, ok=False, campos_faltantes=["Error al reconstruir datos"])
 

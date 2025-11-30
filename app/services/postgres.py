@@ -103,8 +103,8 @@ class PostgresService:
                         # Last resort: treat entire thing as text
                         all_messages.append({"type": "text", "text": {"body": messages}})
             
-            # Return in reverse order (oldest first for context building)
-            return list(reversed(all_messages)) if all_messages else None
+            # Retornar en orden cronológico (más antiguo primero)
+            return all_messages if all_messages else None
 
         except Exception as e:
             logger.error(f"Error buscando teléfono {phone} en Postgres: {e}")

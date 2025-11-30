@@ -23,13 +23,8 @@ CAMPOS OPCIONALES (TODOS):
 - persona_acompanante: Quién llevó al animal ("María", "Voluntario Carlos", "Refugio")
 
 NOMBRE:
-- Nombre del animal SI se menciona
+- Nombre del animal si se menciona
 - null si no aparece
-
-INFORMACIÓN_COMPLETA:
-- true: cuando hay información significativa (al menos diagnóstico O tratamiento)
-- false: cuando es solo referencia vacía sin detalles médicos
-- campos_faltantes: [] (todos son opcionales en VISITA_VET)
 
 REGLAS DE FECHA:
 - PRIORIDAD 1: Fecha exacta en formato "DD/MM/YYYY" → convertir a "YYYY-MM-DD"

@@ -13,8 +13,6 @@ class RawContent(BaseModel):
 
 class ClassificationResult(BaseModel):
     tipo: Optional[str] = None
-    score: float = 0.0
-    reasons: List[str] = Field(default_factory=list)
 
 
 # ===== TIPOS ESPECÍFICOS POR TIPO DE MENSAJE =====
@@ -32,7 +30,7 @@ class CambioEstadoInfo(BaseModel):
 
 
 class NuevoRescateDetails(BaseModel):
-    nombre: Optional[str] = None
+    nombre: str
     tipo_animal: str
     edad: str
     color_de_pelo: List[ColorDePelo]
@@ -76,59 +74,10 @@ class ConsultaDetails(BaseModel):
     respuesta_sugerida: Optional[str] = None
 
 
-# ===== TIPOS DE ANÁLISIS TIPADOS =====
-
-class AnalisysBase(BaseModel):
-    """Base para todos los análisis de mensaje"""
-    tipo_registro: str
-    nombre: Optional[str] = None
-    informacion_completa: bool = False
-    campos_faltantes: List[str] = Field(default_factory=list)
-
-
-class AnalisysNuevoRescate(AnalisysBase):
-    tipo_registro: str = "nuevo_rescate"
-    detalles: NuevoRescateDetails
-
-
-class AnalisysCambioEstado(AnalisysBase):
-    tipo_registro: str = "cambio_estado"
-    detalles: CambioEstadoDetails
-
-
-class AnalisysVisitaVet(AnalisysBase):
-    tipo_registro: str = "visita_vet"
-    detalles: VisitaVetDetails
-
-
-class AnalisysGasto(AnalisysBase):
-    tipo_registro: str = "gasto"
-    detalles: GastoDetails
-
-
-class AnalisysConsulta(AnalisysBase):
-    tipo_registro: str = "consulta"
-    detalles: ConsultaDetails
-
-
-# Union type para cualquier análisis
-AnalysisResult = Union[
-    AnalisysNuevoRescate,
-    AnalisysCambioEstado,
-    AnalisysVisitaVet,
-    AnalisysGasto,
-    AnalisysConsulta,
-]
-
-
 class HandlerResult(BaseModel):
     ok: bool = False
     detalles: Optional[Union[NuevoRescateDetails, GastoDetails, VisitaVetDetails, CambioEstadoDetails, ConsultaDetails]] = None
     campos_faltantes: List[str] = Field(default_factory=list)
-    db_records: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
-    user_messages: List[Tuple[str, str]] = Field(default_factory=list)
-    next_action: Optional[str] = None
-    confidence: float = 0.0
 
 
 # Typing alias for DB record mapping
