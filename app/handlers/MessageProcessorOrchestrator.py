@@ -1,6 +1,7 @@
 import logging
 import json 
-from datetime import datetime 
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
@@ -93,10 +94,11 @@ class MessageProcessorOrchestrator:
         )
     
     def _add_to_conversation(self, phone: str, message_data: dict):
-        """Agrega mensaje al caché"""
+        """Agrega mensaje al caché con hora de Argentina"""
+        now_argentina = datetime.now(ZoneInfo("America/Argentina/Buenos_Aires"))
         record = {
             "phone": phone,
             "messages": json.dumps(message_data, ensure_ascii=False),
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "timestamp": now_argentina.strftime("%Y-%m-%d %H:%M:%S"),
         }
         self.db_service.insert_record(record, "whatsapp_messages")
