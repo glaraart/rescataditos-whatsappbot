@@ -57,7 +57,7 @@ async def whatsapp_webhook(request: Request):
         data = json.loads(body)
         
         # Log temporal para ver qué llega
-        logger.info(f"📩 Webhook recibido: {json.dumps(data, indent=2, ensure_ascii=False)}")
+        
         
         # Procesar cada entrada
         for entry in data["entry"]:
@@ -68,7 +68,7 @@ async def whatsapp_webhook(request: Request):
                 if "statuses" in value:
                     logger.info("⏭️ Ignorando notificación de estado")
                     continue
-                
+                logger.info(f"📩 Webhook recibido: {json.dumps(data, indent=2, ensure_ascii=False)}")
                 # Procesar solo mensajes entrantes del usuario
                 messages = value.get("messages", [])
                 for message_data in messages:

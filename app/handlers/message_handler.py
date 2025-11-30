@@ -214,6 +214,7 @@ class MessageHandler(ABC):
             
             # Flujo normal: analizar y validar
             result = await self.analyze(raw)
+            logger.info(f"Resultado de IA {result}")
             result = self.validate(result)
             
             logger.info(f"Handler result: {result}")
