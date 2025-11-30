@@ -100,6 +100,7 @@ class MessageProcessorOrchestrator:
     def _add_to_conversation(self, phone: str, message_data: dict):
         """Agrega mensaje al caché con hora de Argentina"""
         now_argentina = datetime.now(ZoneInfo("America/Argentina/Buenos_Aires"))
+        logger.info(f"Fecha: {now_argentina}")
         record = {
             "phone": phone,
             "messages": json.dumps(message_data, ensure_ascii=False),
