@@ -132,7 +132,10 @@ class AIService:
         with open(template_path, "r", encoding="utf-8") as f:
             template = f.read()
 
-        prompt_text = template.format(**context)
+        # Reemplazar variables manualmente para evitar conflicto con {} en JSON
+        prompt_text = template
+        for key, value in context.items():
+            prompt_text = prompt_text.replace(f"{{{key}}}", str(value))
         
         logger.info(f"🤖 Llamando AI con prompt: {template_name}, texto: {context.get('text', '')[:100]}")
 
