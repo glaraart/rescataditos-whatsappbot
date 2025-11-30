@@ -160,7 +160,7 @@ class PostgresService:
                   a.fecha AS "Fecha Rescate",
                   e.fecha AS "Fecha Estado",
                   i.contenido AS "Contenido",
-                  i.media_url AS "Media URL"
+                  i.post_id AS "Post ID"
                 FROM animales a
                 LEFT JOIN LATERAL (
                   SELECT ubicacion_id, estado_id, fecha
@@ -172,7 +172,7 @@ class PostgresService:
                 LEFT JOIN estado s ON s.estado_id = e.estado_id
                 LEFT JOIN ubicacion u ON u.id = e.ubicacion_id
                 LEFT JOIN LATERAL (
-                  SELECT contenido, media_url
+                  SELECT contenido, post_id
                   FROM interaccion
                   WHERE animal_id = a.id
                   ORDER BY fecha DESC

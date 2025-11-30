@@ -110,9 +110,8 @@ class NuevoRescateHandler(MessageHandler):
                     "usuario": None,
                     "fecha": fecha_actual,
                     "tipo_interaccion": None,
-                    "post_id": drive_file_id ,
-                    "contenido": None,
-                    "media_url": image_url,
+                    "post_id": drive_file_id,
+                    "contenido": image_url,
                     "seguimiento_requerido": False,
                 }
                 db_service.insert_record(interaccion_record, "interaccion")

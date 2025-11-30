@@ -69,7 +69,7 @@ class SheetsService:
             headers = [
                 "animal_id", "Nombre", "Estado ID", "Estado",
                 "Ubicación", "Fecha Rescate", "Fecha Estado",
-                "Contenido", "Media URL"
+                "Contenido", "Post ID"
             ]
             
             # Construir datos para actualizar
@@ -85,7 +85,7 @@ class SheetsService:
                     str(record.get("Fecha Rescate", "")) if record.get("Fecha Rescate") else "",
                     str(record.get("Fecha Estado", "")) if record.get("Fecha Estado") else "",
                     record.get("Contenido", ""),
-                    record.get("Media URL", "")
+                    record.get("Post ID", "")
                 ]
                 rows_to_update.append(row)
             
