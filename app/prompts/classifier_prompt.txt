@@ -74,20 +74,24 @@ Ejemplos:
 ===== CONSULTA =====
 ¿CUÁNDO clasificar como CONSULTA?
 - Se realiza una PREGUNTA general sobre rescate, cuidados, procedimientos
+- Se envía un SALUDO o mensaje conversacional ("Hola", "Buenos días", "¿Cómo estás?")
 - NO hay reporte de un animal específico (o es secundario)
 - NO hay decisión sobre cambio de estado
 - NO hay visita veterinaria reportada
 - NO hay dinero gastado
 - Es una solicitud de INFORMACIÓN, CONSEJO, o ORIENTACIÓN
 - Puede ser pregunta abierta o dudas sobre procedimientos del rescate
+- Mensajes de conversación general que no requieren acción específica
 
-Palabras clave: "¿Cómo hago", "¿Qué hago", "¿Dónde", "¿Cuándo", "preguntas", "duda", "me pregunto", "¿Es normal", "me gustaría saber", "¿Cuál es", "necesito ayuda"
+Palabras clave: "¿Cómo hago", "¿Qué hago", "¿Dónde", "¿Cuándo", "preguntas", "duda", "me pregunto", "¿Es normal", "me gustaría saber", "¿Cuál es", "necesito ayuda", "Hola", "Buenos días", "Buenas tardes", "¿Cómo están?"
 Ejemplos:
 - "¿Cómo hago para esterilizar a mi gata?"
 - "¿Es normal que el perro tenga diarrea después de cambiar de comida?"
 - "¿Dónde puedo llevar a un animal que encontré?"
 - "¿Cuál es el mejor horario para vacunar?"
 - "Me gustaría saber qué trámites necesito para adoptar"
+- "Hola, ¿cómo están?"
+- "Buenos días, gracias por el trabajo que hacen"
 
 ===== DIFERENCIACIÓN CRÍTICA COMPLETA =====
 NUEVO_RESCATE: reporte de RESCATE/HALLAZGO de animal nuevo
