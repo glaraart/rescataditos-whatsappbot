@@ -91,7 +91,7 @@ Ejemplo 4 - Con información incompleta:
 
 INSTRUCCIONES FINALES:
 1. Analiza el mensaje completo para extraer información de cambio de estado
-2. Identifica el nombre del animal (obligatorio para cambio de estado)
+2. Identifica el nombre del animal 
 3. Determina la ubicación actual usando las reglas de ubicacion_id
 4. Determina el estado actual usando las reglas de estado_id
 5. Identifica la persona responsable o que generó el cambio
