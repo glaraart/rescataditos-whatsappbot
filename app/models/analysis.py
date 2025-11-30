@@ -43,7 +43,7 @@ class CambioEstadoDetails(BaseModel):
     nombre: Optional[str] = None
     ubicacion_id: int
     estado_id: int
-    persona: str
+    persona: Optional[str] = None
     tipo_relacion_id: int
 
 

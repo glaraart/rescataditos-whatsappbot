@@ -47,9 +47,14 @@ REGLAS PARA PERSONA:
 - Si hay múltiples personas, incluirlas todas separadas por coma/y
 - Maximizar información: "Dr. López de la clínica Veterinaria Plus"
 
-NOMBRE:
-- Nombre del animal
-- null si no aparece en el mensaje
+REGLAS PARA NOMBRE:
+- Extraer el nombre del animal mencionado en el mensaje
+- Buscar nombres propios que se refieran al animal (ej. "Max", "Luna", "Olivia")
+- Si el mensaje dice "X fue adoptado/rescatado/está en tratamiento", X es el nombre
+- Si dice "el perro Max" o "la gata Luna", extraer el nombre
+- Solo usar null si definitivamente no hay ningún nombre mencionado
+- Los nombres de animales suelen ser: nombres propios cortos, palabras en español/inglés
+- NO confundir con nombres de personas (ej. "María adoptó a Max" → nombre="Max", persona="María")
 
 EJEMPLOS DE RESPUESTA:
 
