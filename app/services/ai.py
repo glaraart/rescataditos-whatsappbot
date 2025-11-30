@@ -133,6 +133,8 @@ class AIService:
             template = f.read()
 
         prompt_text = template.format(**context)
+        
+        logger.info(f"🤖 Llamando AI con prompt: {template_name}, texto: {context.get('text', '')[:100]}")
 
         try:
             # Build user content with text + images
@@ -141,6 +143,7 @@ class AIService:
             # Add images if provided
             if images:
                 user_content.extend(images)
+                logger.info(f"📷 Incluyendo {len(images)} imágenes")
             
             response = await self.client.chat.completions.create(
                 model="gpt-5.1",
@@ -149,8 +152,11 @@ class AIService:
             )
 
             result = response.choices[0].message.content.strip()
+            logger.info(f"✅ Respuesta AI ({len(result)} chars): {result[:200]}...")
             return result
 
         except Exception as e:
-            logger.error(f"Error running prompt {template_name}: {e}")
+            logger.error(f"❌ Error running prompt {template_name}: {type(e).__name__}: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             raise

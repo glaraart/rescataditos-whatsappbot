@@ -30,20 +30,25 @@ class MessageHandler(ABC):
         """Análisis genérico usando IA con el prompt específico del handler"""
         resp_text = None
         try:
+            logger.info(f"Iniciando análisis con prompt: {self.prompt_file}, texto: {raw.text}")
             resp_text = await self.ai_service.run_prompt(
                 self.prompt_file,
                 {"text": raw.text or ""},
                 images=raw.images
             )
-            logger.info(f"Respuesta AI raw: {resp_text}")
+            logger.info(f"Respuesta AI raw: {resp_text[:500]}")  # Primeros 500 caracteres
             data = json.loads(resp_text)
             logger.info(f"JSON parseado: {data}")
             detalles = self.details_class(**data)
-            logger.info(f"Detalles creados: {detalles}")
+            logger.info(f"Detalles creados exitosamente")
         except Exception as e:
-            logger.error(f"Error en análisis AI: {e}")
+            logger.error(f"Error en análisis AI: {type(e).__name__}: {e}")
             if resp_text:
-                logger.error(f"Respuesta AI que causó error: {resp_text}")
+                logger.error(f"Respuesta AI que causó error: {resp_text[:1000]}")
+            else:
+                logger.error(f"No se obtuvo respuesta del AI")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             detalles = None
         
         return HandlerResult(detalles=detalles)
