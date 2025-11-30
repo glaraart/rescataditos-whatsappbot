@@ -56,12 +56,18 @@ async def whatsapp_webhook(request: Request):
         body = await request.body()
         data = json.loads(body)
         
+        # Log temporal para ver qué llega
+        logger.info(f"📩 Webhook recibido: {json.dumps(data, indent=2, ensure_ascii=False)}")
+        
         # Procesar cada entrada
         for entry in data["entry"]:
             for change in entry["changes"]:
                 for message_data in change.get("value", {}).get("messages", []):
-                    # Procesar mensaje en paralelo (no bloquea otros mensajes)
-                    asyncio.create_task(process_single_message(message_data))
+                    # Procesar mensaje secuencialmente
+                    message_id = message_data.get('id', 'unknown')
+                    logger.info(f"🔄 Procesando mensaje ID: {message_id}")
+                    await process_single_message(message_data)
+                    logger.info(f"✅ Mensaje {message_id} procesado")
         return {"status": "received"}
         
     except json.JSONDecodeError:
