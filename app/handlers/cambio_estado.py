@@ -1,7 +1,10 @@
 import json
+import logging
 from app.handlers.message_handler import MessageHandler
 from app.models.analysis import RawContent, HandlerResult, CambioEstadoDetails
 from app.services.ai import AIService
+
+logger = logging.getLogger(__name__)
 
 
 class CambioEstadoHandler(MessageHandler):

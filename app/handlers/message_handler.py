@@ -69,6 +69,10 @@ class MessageHandler(ABC):
             success = await self.save_to_db(result, self.db_service, raw)
             
             if success:
+                # Actualizar dashboard si es nuevo_rescate o cambio_estado
+                if tipo in ["NUEVO_RESCATE", "CAMBIO_ESTADO"]:
+                    self._update_dashboard()
+                
                 await self.send_completion_confirmation(phone, tipo, result)
                 self.confirmation_manager.clear_pending_confirmation(phone)
             else:
@@ -92,6 +96,22 @@ class MessageHandler(ABC):
                 })
         
         return RawContent(phone="", text="", images=images)
+    
+    def _update_dashboard(self):
+        """Actualizar la hoja DASHBOARD con los datos actualizados"""
+        try:
+            from app.services.sheets import SheetsService
+            
+            # Obtener datos del dashboard desde Postgres
+            dashboard_data = self.db_service.get_dashboard_data()
+            
+            if dashboard_data:
+                # Actualizar Google Sheets
+                sheets_service = SheetsService()
+                sheets_service.update_dashboard(dashboard_data)
+                logger.info("Dashboard actualizado exitosamente")
+        except Exception as e:
+            logger.error(f"Error actualizando dashboard: {e}")
     
     def _save_incomplete_request(self, phone: str, tipo: str, result):
         """Guarda solicitud incompleta en caché"""

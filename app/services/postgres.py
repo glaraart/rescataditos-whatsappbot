@@ -143,3 +143,55 @@ class PostgresService:
         except Exception as e:
             logger.error(f"Error verificando animal por nombre {nombre}: {e}")
             return None
+    
+    def get_dashboard_data(self) -> List[Dict[str, Any]]:
+        """Ejecutar query del dashboard y retornar lista de registros"""
+        try:
+            conn = self._connect()
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            
+            sql = """
+                SELECT
+                  a.id AS animal_id,
+                  a.nombre AS "Nombre",
+                  e.estado_id AS "Estado ID",
+                  COALESCE(s.nombre, 'Desconocido') AS "Estado",
+                  COALESCE(u.nombre, 'Desconocido') AS "Ubicación",
+                  a.fecha AS "Fecha Rescate",
+                  e.fecha AS "Fecha Estado",
+                  i.contenido AS "Contenido",
+                  i.media_url AS "Media URL"
+                FROM animales a
+                LEFT JOIN LATERAL (
+                  SELECT ubicacion_id, estado_id, fecha
+                  FROM eventos
+                  WHERE animal_id = a.id
+                  ORDER BY fecha DESC
+                  LIMIT 1
+                ) e ON true
+                LEFT JOIN estado s ON s.estado_id = e.estado_id
+                LEFT JOIN ubicacion u ON u.id = e.ubicacion_id
+                LEFT JOIN LATERAL (
+                  SELECT contenido, media_url
+                  FROM interaccion
+                  WHERE animal_id = a.id
+                  ORDER BY fecha DESC
+                  LIMIT 1
+                ) i ON true
+                WHERE a.activo = true
+                ORDER BY a.fecha DESC;
+            """
+            
+            cur.execute(sql)
+            rows = cur.fetchall()
+            cur.close()
+            conn.close()
+            
+            # Convertir RealDictRow a dict normal
+            result = [dict(row) for row in rows]
+            logger.info(f"Dashboard data: {len(result)} registros obtenidos")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo datos del dashboard: {e}")
+            return []
