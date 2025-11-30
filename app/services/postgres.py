@@ -149,7 +149,7 @@ class PostgresService:
         try:
             conn = self._connect()
             cur = conn.cursor()
-            sql = "SELECT id FROM animales WHERE lower(nombre) = lower(%s) AND activo = true LIMIT 1"
+            sql = "SELECT id FROM animales WHERE lower(nombre) = lower(%s) AND activo = true order by fecha desc LIMIT 1"
             cur.execute(sql, (nombre,))
             row = cur.fetchone()
             cur.close()

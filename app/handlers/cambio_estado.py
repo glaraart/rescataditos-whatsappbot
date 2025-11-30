@@ -1,5 +1,7 @@
 import json
 import logging
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from app.handlers.message_handler import MessageHandler
 from app.models.analysis import RawContent, HandlerResult, CambioEstadoDetails
 from app.services.ai import AIService
@@ -65,6 +67,10 @@ class CambioEstadoHandler(MessageHandler):
         
         datos = result.detalles
         
+        # Asignar fecha actual de Buenos Aires
+        now_argentina = datetime.now(ZoneInfo("America/Argentina/Buenos_Aires"))
+        fecha_str = now_argentina.strftime("%Y-%m-%d %H:%M:%S")
+        
         try:
             evento_record = {
                 "animal_id": datos.animal_id,
@@ -72,7 +78,7 @@ class CambioEstadoHandler(MessageHandler):
                 "estado_id": datos.estado_id,
                 "persona": datos.persona,
                 "tipo_relacion_id": datos.tipo_relacion_id,
-                "fecha": None,
+                "fecha": fecha_str,
             }
             evento_ok = db_service.insert_record(evento_record, "eventos")
             return evento_ok

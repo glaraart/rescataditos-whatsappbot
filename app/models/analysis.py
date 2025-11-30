@@ -46,6 +46,7 @@ class CambioEstadoDetails(BaseModel):
     estado_id: int
     persona: Optional[str] = None
     tipo_relacion_id: int
+    fecha: Optional[str] = None
 
 
 class VisitaVetDetails(BaseModel):
