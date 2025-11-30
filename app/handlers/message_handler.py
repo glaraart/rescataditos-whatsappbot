@@ -28,6 +28,7 @@ class MessageHandler(ABC):
     
     async def analyze(self, raw: RawContent) -> HandlerResult:
         """Análisis genérico usando IA con el prompt específico del handler"""
+        resp_text = None
         try:
             resp_text = await self.ai_service.run_prompt(
                 self.prompt_file,
@@ -40,7 +41,9 @@ class MessageHandler(ABC):
             detalles = self.details_class(**data)
             logger.info(f"Detalles creados: {detalles}")
         except Exception as e:
-            logger.error(f"Error en análisis AI: {e}, respuesta: {resp_text if 'resp_text' in locals() else 'N/A'}")
+            logger.error(f"Error en análisis AI: {e}")
+            if resp_text:
+                logger.error(f"Respuesta AI que causó error: {resp_text}")
             detalles = None
         
         return HandlerResult(detalles=detalles)
