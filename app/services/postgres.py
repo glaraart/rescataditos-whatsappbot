@@ -144,6 +144,23 @@ class PostgresService:
             logger.error(f"Error verificando animal por nombre {nombre}: {e}")
             return None
     
+    def get_animal_by_name(self, nombre: str) -> Optional[int]:
+        """Return animal id if exists (case-insensitive) and activo=true, else None"""
+        try:
+            conn = self._connect()
+            cur = conn.cursor()
+            sql = "SELECT id FROM animales WHERE lower(nombre) = lower(%s) AND activo = true LIMIT 1"
+            cur.execute(sql, (nombre,))
+            row = cur.fetchone()
+            cur.close()
+            conn.close()
+            if row:
+                return row[0]
+            return None
+        except Exception as e:
+            logger.error(f"Error obteniendo animal por nombre {nombre}: {e}")
+            return None
+    
     def get_dashboard_data(self) -> List[Dict[str, Any]]:
         """Ejecutar query del dashboard y retornar lista de registros"""
         try:

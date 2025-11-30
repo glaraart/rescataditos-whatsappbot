@@ -14,9 +14,9 @@ class ConfirmationManager:
         self.db_service = db_service
         self.whatsapp_service = whatsapp_service
     
-    async def send_confirmation_request(self, phone: str, tipo: str, result):
-        """Envía solicitud de confirmación"""
-        mensaje = self._build_confirmation_message(tipo, result)
+    async def send_confirmation_request(self, phone: str, tipo: str, result, formatted_fields: dict):
+        """Envía solicitud de confirmación con campos ya formateados"""
+        mensaje = self._build_confirmation_message(tipo, formatted_fields)
         
         # Enviar mensaje de confirmación (sin botones por ahora)
         await self.whatsapp_service.send_message(phone, mensaje)
@@ -82,31 +82,29 @@ class ConfirmationManager:
         
         return None
     
-    def _build_confirmation_message(self, tipo: str, result) -> str:
-        """Construye mensaje de confirmación"""
+    def _build_confirmation_message(self, tipo: str, formatted_fields: dict) -> str:
+        """Construye mensaje de confirmación con campos ya formateados por el handler"""
         tipo_label = tipo.upper().replace("_", " ")
-        detalles_dict = self._extract_detalles(result.detalles)
-        nombre = detalles_dict.get("nombre", "Sin nombre")
+        nombre = formatted_fields.get("nombre", "Sin nombre")
         
         mensaje = f"📋 **CONFIRMAR {tipo_label}**\n\n"
         mensaje += f"**Información a registrar**: {nombre}\n\n**Detalles:**\n"
         
-        for key, val in detalles_dict.items():
-            if val and key != "nombre":
-                mensaje += f"\n• **{key.replace('_', ' ').title()}**: {val}"
+        # Mostrar todos los campos excepto 'nombre' (ya está en el título)
+        for key, val in formatted_fields.items():
+            if key != "nombre":
+                mensaje += f"\n• **{key}**: {val}"
         
         mensaje += "\n\n¿Deseas confirmar y guardar este registro?"
         return mensaje
     
-    def _extract_detalles(self, detalles) -> dict:
-        """Extrae detalles como diccionario"""
-        if hasattr(detalles, "dict"):
-            return detalles.dict(exclude_none=True)
-        return detalles if isinstance(detalles, dict) else {}
-    
     def _save_pending_confirmation(self, phone: str, tipo: str, result):
         """Guarda registro de confirmación pendiente en el historial"""
-        detalles_dict = self._extract_detalles(result.detalles)
+        # Extraer detalles completos (con todos los campos incluidos None)
+        if hasattr(result.detalles, "dict"):
+            detalles_dict = result.detalles.dict()
+        else:
+            detalles_dict = result.detalles if isinstance(result.detalles, dict) else {}
         
         now_argentina = datetime.now(ZoneInfo("America/Argentina/Buenos_Aires"))
         timestamp_str = now_argentina.strftime("%Y-%m-%d %H:%M:%S")

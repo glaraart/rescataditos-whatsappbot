@@ -30,25 +30,20 @@ class MessageHandler(ABC):
         """Análisis genérico usando IA con el prompt específico del handler"""
         resp_text = None
         try:
-            logger.info(f"Iniciando análisis con prompt: {self.prompt_file}, texto: {raw.text}")
             resp_text = await self.ai_service.run_prompt(
                 self.prompt_file,
                 {"text": raw.text or ""},
                 images=raw.images
             )
-            logger.info(f"Respuesta AI raw: {resp_text[:500]}")  # Primeros 500 caracteres
+            logger.info(f"Respuesta AI raw: {resp_text}")
             data = json.loads(resp_text)
             logger.info(f"JSON parseado: {data}")
             detalles = self.details_class(**data)
-            logger.info(f"Detalles creados exitosamente")
+            logger.info(f"Detalles creados: {detalles}")
         except Exception as e:
-            logger.error(f"Error en análisis AI: {type(e).__name__}: {e}")
+            logger.error(f"Error en análisis AI: {e}")
             if resp_text:
-                logger.error(f"Respuesta AI que causó error: {resp_text[:1000]}")
-            else:
-                logger.error(f"No se obtuvo respuesta del AI")
-            import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
+                logger.error(f"Respuesta AI que causó error: {resp_text}")
             detalles = None
         
         return HandlerResult(detalles=detalles)
@@ -66,6 +61,13 @@ class MessageHandler(ABC):
     @abstractmethod
     def reconstruct_result(self, detalles_parciales: dict) -> HandlerResult:
         """Reconstruye HandlerResult desde confirmación pendiente"""
+        pass
+    
+    @abstractmethod
+    def format_confirmation_fields(self, detalles) -> dict:
+        """Formatea campos para mostrar en mensaje de confirmación.
+        Debe retornar dict con 'nombre' y demás campos legibles para el usuario.
+        """
         pass
     
     # ===== SHARED METHODS (heredadas por todos los handlers) =====
@@ -249,7 +251,8 @@ class MessageHandler(ABC):
             
             if result.ok:
                 # Datos completos: pedir confirmación
-                await self.confirmation_manager.send_confirmation_request(phone, tipo, result)
+                formatted_fields = self.format_confirmation_fields(result.detalles)
+                await self.confirmation_manager.send_confirmation_request(phone, tipo, result, formatted_fields)
             else:
                 # Datos incompletos: pedir campos faltantes y guardar en caché
                 await self.request_missing_fields(phone, tipo, result)

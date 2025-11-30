@@ -41,6 +41,7 @@ class NuevoRescateDetails(BaseModel):
 
 class CambioEstadoDetails(BaseModel):
     nombre: Optional[str] = None
+    animal_id: Optional[int] = None
     ubicacion_id: int
     estado_id: int
     persona: Optional[str] = None

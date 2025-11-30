@@ -21,14 +21,40 @@ class CambioEstadoHandler(MessageHandler):
             result.campos_faltantes = ["detalles_invalidos"]
             return result
         
+        # Validar campos requeridos del análisis IA
         required_fields = {
-            "ubicacion_id": result.detalles.ubicacion_id,
+            "nombre": result.detalles.nombre,
             "estado_id": result.detalles.estado_id,
         }
         
         missing = [k for k, v in required_fields.items() if v is None]
-        result.campos_faltantes = missing
-        result.ok = len(missing) == 0
+        
+        # Si falta el nombre, no podemos buscar el animal
+        if missing:
+            result.campos_faltantes = missing
+            result.ok = False
+            return result
+        
+        # Buscar animal_id por nombre en la base de datos
+        try:
+            animal_id = self.db_service.get_animal_by_name(result.detalles.nombre)
+            if not animal_id:
+                result.campos_faltantes = [f"animal_no_encontrado: {result.detalles.nombre}"]
+                result.ok = False
+                logger.warning(f"Animal no encontrado: {result.detalles.nombre}")
+                return result
+            
+            # Asignar animal_id al resultado
+            result.detalles.animal_id = animal_id
+            logger.info(f"Animal encontrado: {result.detalles.nombre} -> ID {result.detalles.animal_id}")
+            
+        except Exception as e:
+            logger.error(f"Error buscando animal: {e}")
+            result.campos_faltantes = ["error_busqueda_animal"]
+            result.ok = False
+            return result
+        
+        result.ok = True
         return result
 
     async def save_to_db(self, result: HandlerResult, db_service, raw: RawContent = None) -> bool:
@@ -41,6 +67,7 @@ class CambioEstadoHandler(MessageHandler):
         
         try:
             evento_record = {
+                "animal_id": datos.animal_id,
                 "ubicacion_id": datos.ubicacion_id,
                 "estado_id": datos.estado_id,
                 "persona": datos.persona,
@@ -51,6 +78,20 @@ class CambioEstadoHandler(MessageHandler):
             return evento_ok
         except Exception:
             return False
+    
+    def format_confirmation_fields(self, detalles) -> dict:
+        """Formatea campos para mensaje de confirmación con descripciones legibles"""
+        ubicaciones = {1: "Refugio", 2: "Tránsito", 3: "Veterinaria", 4: "Hogar adoptante"}
+        estados = {1: "Perdido", 2: "En Tratamiento", 3: "En Adopción", 5: "Adoptado", 6: "Fallecido"}
+        relaciones = {1: "Adoptante", 2: "Transitante", 3: "Veterinario", 4: "Voluntario", 5: "Interesado"}
+        
+        return {
+            "nombre": detalles.nombre,
+            "Ubicación": ubicaciones.get(detalles.ubicacion_id, str(detalles.ubicacion_id)),
+            "Estado": estados.get(detalles.estado_id, str(detalles.estado_id)),
+            "Persona": detalles.persona or "No especificado",
+            "Tipo de Relación": relaciones.get(detalles.tipo_relacion_id, str(detalles.tipo_relacion_id))
+        }
     
     def reconstruct_result(self, detalles_parciales: dict) -> HandlerResult:
         """Reconstruye HandlerResult desde confirmación pendiente"""
