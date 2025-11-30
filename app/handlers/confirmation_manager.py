@@ -1,6 +1,7 @@
 import logging
 from typing import Optional, Dict, Any
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import json
 
 logger = logging.getLogger(__name__)
@@ -107,17 +108,20 @@ class ConfirmationManager:
         """Guarda registro de confirmación pendiente en el historial"""
         detalles_dict = self._extract_detalles(result.detalles)
         
+        now_argentina = datetime.now(ZoneInfo("America/Argentina/Buenos_Aires"))
+        timestamp_str = now_argentina.strftime("%Y-%m-%d %H:%M:%S")
+        
         pending_data = {
             "type": "pending_confirmation",
             "tipo_solicitud": tipo,
             "detalles_parciales": detalles_dict,
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "timestamp": timestamp_str,
         }
         
         record = {
             "phone": phone,
             "messages": json.dumps(pending_data, ensure_ascii=False),
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "timestamp": timestamp_str,
         }
         
         try:

@@ -3,6 +3,7 @@ import logging
 import json
 from abc import ABC, abstractmethod
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from app.models.analysis import RawContent, HandlerResult
 from app.services.ai import AIService
 
@@ -33,9 +34,13 @@ class MessageHandler(ABC):
                 {"text": raw.text or ""},
                 images=raw.images
             )
+            logger.info(f"Respuesta AI raw: {resp_text}")
             data = json.loads(resp_text)
+            logger.info(f"JSON parseado: {data}")
             detalles = self.details_class(**data)
-        except Exception:
+            logger.info(f"Detalles creados: {detalles}")
+        except Exception as e:
+            logger.error(f"Error en análisis AI: {e}, respuesta: {resp_text if 'resp_text' in locals() else 'N/A'}")
             detalles = None
         
         return HandlerResult(detalles=detalles)
@@ -118,18 +123,21 @@ class MessageHandler(ABC):
                
         detalles = result.detalles.dict(exclude_none=True) if hasattr(result.detalles, "dict") else {}
         
+        now_argentina = datetime.now(ZoneInfo("America/Argentina/Buenos_Aires"))
+        timestamp_str = now_argentina.strftime("%Y-%m-%d %H:%M:%S")
+        
         data = {
             "type": "incomplete_request",
             "tipo_solicitud": tipo,
             "detalles_parciales": detalles,
             "campos_faltantes": result.campos_faltantes,
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "timestamp": timestamp_str,
         }
         
         record = {
             "phone": phone,
             "messages": json.dumps(data, ensure_ascii=False),
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "timestamp": timestamp_str,
         }
         
         self.db_service.insert_record(record, "whatsapp_messages")
