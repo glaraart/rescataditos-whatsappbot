@@ -25,7 +25,7 @@ class ColorDePelo(BaseModel):
 class CambioEstadoInfo(BaseModel):
     ubicacion_id: int
     estado_id: int
-    persona: str
+    persona: Optional[str] = None
     tipo_relacion_id: int
 
 
