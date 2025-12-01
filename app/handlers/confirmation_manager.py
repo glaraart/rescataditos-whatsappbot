@@ -18,8 +18,13 @@ class ConfirmationManager:
         """Envía solicitud de confirmación con campos ya formateados"""
         mensaje = self._build_confirmation_message(tipo, formatted_fields)
         
-        # Enviar mensaje de confirmación (sin botones por ahora)
-        await self.whatsapp_service.send_message(phone, mensaje)
+        # Enviar mensaje de confirmación con botones de Sí/No
+        buttons = [
+            {"id": "confirm_yes", "title": "✅ Sí, confirmar"},
+            {"id": "confirm_no", "title": "❌ No, cancelar"}
+        ]
+        
+        await self.whatsapp_service.send_message_with_buttons(phone, mensaje, buttons)
         
         # Guardar estado de confirmación pendiente en el historial
         self._save_pending_confirmation(phone, tipo, result)
@@ -70,14 +75,18 @@ class ConfirmationManager:
         
         # Detectar texto
         if message.get("type") == "text":
-            text = message.get("text", {}).get("body", "").lower()
+            text = message.get("text", {}).get("body", "").lower().strip()
             
+            # Palabras de confirmación (solo palabras completas)
             confirmacion = ["sí", "si", "yes", "yep", "ok", "okay", "confirmar", "confirm", "adelante", "go"]
-            if any(palabra in text for palabra in confirmacion):
+            # Verificar si el texto es exactamente una palabra de confirmación o empieza con ella
+            if text in confirmacion or any(text.startswith(palabra + " ") for palabra in confirmacion):
                 return "confirmed"
             
+            # Palabras de cancelación (solo palabras completas)
             cancelacion = ["no", "nope", "cancelar", "cancel", "no gracias", "no thanks", "abortar"]
-            if any(palabra in text for palabra in cancelacion):
+            # Verificar si el texto es exactamente una palabra de cancelación o empieza con ella
+            if text in cancelacion or any(text.startswith(palabra + " ") for palabra in cancelacion):
                 return "cancelled"
         
         return None
@@ -95,7 +104,7 @@ class ConfirmationManager:
             if key != "nombre":
                 mensaje += f"\n• **{key}**: {val}"
         
-        mensaje += "\n\n¿Deseas confirmar y guardar este registro?"
+        mensaje += "\n\n✅ Presiona un botón para continuar"
         return mensaje
     
     def _save_pending_confirmation(self, phone: str, tipo: str, result):
