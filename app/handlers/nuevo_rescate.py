@@ -121,6 +121,27 @@ class NuevoRescateHandler(MessageHandler):
             logger.error(f"Error guardando nuevo rescate: {e}")
             return False
     
+    def format_confirmation_fields(self, detalles) -> dict:
+        """Formatea campos para mensaje de confirmación con descripciones legibles"""
+        ubicaciones = {1: "Refugio", 2: "Tránsito", 3: "Veterinaria", 4: "Hogar adoptante"}
+        estados = {1: "Perdido", 2: "En Tratamiento", 3: "En Adopción", 5: "Adoptado", 6: "Fallecido"}
+        relaciones = {1: "Adoptante", 2: "Transitante", 3: "Veterinario", 4: "Voluntario", 5: "Interesado"}
+        
+        # Formatear colores de pelo
+        colores = ", ".join([f"{c.color} ({c.porcentaje}%)" for c in detalles.color_de_pelo]) if detalles.color_de_pelo else "No especificado"
+        
+        return {
+            "nombre": detalles.nombre,
+            "Tipo de Animal": detalles.tipo_animal or "No especificado",
+            "Edad": detalles.edad or "No especificado",
+            "Color de Pelo": colores,
+            "Condición de Salud": detalles.condicion_de_salud_inicial or "No especificado",
+            "Ubicación Inicial": detalles.ubicacion or "No especificado",
+            "Estado Inicial": estados.get(detalles.cambio_estado.estado_id, "No especificado") if detalles.cambio_estado else "No especificado",
+            "Persona Responsable": detalles.cambio_estado.persona if detalles.cambio_estado else "No especificado",
+            "Tipo de Relación": relaciones.get(detalles.cambio_estado.tipo_relacion_id, "No especificado") if detalles.cambio_estado else "No especificado"
+        }
+    
     def reconstruct_result(self, detalles_parciales: dict) -> HandlerResult:
         """Reconstruye HandlerResult desde confirmación pendiente"""
         try:

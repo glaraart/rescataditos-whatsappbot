@@ -45,6 +45,18 @@ class VisitaVetHandler(MessageHandler):
         except Exception:
             return False
     
+    def format_confirmation_fields(self, detalles) -> dict:
+        """Formatea campos para mensaje de confirmación"""
+        return {
+            "nombre": detalles.nombre or "No especificado",
+            "Veterinario": detalles.veterinario or "No especificado",
+            "Fecha": detalles.fecha or "No especificada",
+            "Diagnóstico": detalles.diagnostico or "No especificado",
+            "Tratamiento": detalles.tratamiento or "No especificado",
+            "Próxima Cita": detalles.proxima_cita or "No especificada",
+            "Persona Acompañante": detalles.persona_acompanante or "No especificada"
+        }
+    
     def reconstruct_result(self, detalles_parciales: dict) -> HandlerResult:
         """Reconstruye HandlerResult desde confirmación pendiente"""
         try:

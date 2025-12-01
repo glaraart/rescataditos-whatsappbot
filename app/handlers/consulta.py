@@ -89,6 +89,14 @@ class ConsultaHandler(MessageHandler):
         """No usado en consultas"""
         return True
     
+    def format_confirmation_fields(self, detalles) -> dict:
+        """Formatea campos para mensaje de confirmación"""
+        return {
+            "nombre": detalles.nombre or "General",
+            "Tema": detalles.tema,
+            "Respuesta Sugerida": detalles.respuesta_sugerida or "No disponible"
+        }
+    
     def reconstruct_result(self, detalles_parciales: dict) -> HandlerResult:
         """No usado en consultas"""
         return HandlerResult(detalles=None, ok=True, campos_faltantes=[])

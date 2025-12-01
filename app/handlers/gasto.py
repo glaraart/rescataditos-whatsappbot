@@ -85,6 +85,28 @@ class GastoHandler(MessageHandler):
             logger.error(f"Error guardando gasto: {e}")
             return False
     
+    def format_confirmation_fields(self, detalles) -> dict:
+        """Formatea campos para mensaje de confirmación"""
+        categorias = {
+            1: "Veterinaria",
+            2: "Alimento",
+            3: "Medicamentos",
+            4: "Suministros",
+            5: "Transporte",
+            6: "Otros"
+        }
+        
+        return {
+            "nombre": detalles.nombre or "General",
+            "Monto": f"${detalles.monto:.2f}",
+            "Fecha": detalles.fecha or "No especificada",
+            "Categoría": categorias.get(detalles.categoria_id, "No especificada") if detalles.categoria_id else "No especificada",
+            "Descripción": detalles.descripcion or "No especificada",
+            "Proveedor": detalles.proveedor or "No especificado",
+            "Responsable": detalles.responsable or "No especificado",
+            "Forma de Pago": detalles.forma_de_pago or "No especificada"
+        }
+    
     def reconstruct_result(self, detalles_parciales: dict) -> HandlerResult:
         """Reconstruye HandlerResult desde confirmación pendiente"""
         try:
