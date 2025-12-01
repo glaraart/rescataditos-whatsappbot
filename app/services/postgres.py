@@ -161,6 +161,61 @@ class PostgresService:
             logger.error(f"Error obteniendo animal por nombre {nombre}: {e}")
             return None
     
+    def get_last_inserted_id(self, table_name: str, id_column: str = "id") -> Optional[int]:
+        """Get the last inserted ID from a table using currval"""
+        try:
+            conn = self._connect()
+            cur = conn.cursor()
+            # Construct sequence name (PostgreSQL naming convention: tablename_idcolumn_seq)
+            sequence_name = f"{table_name}_{id_column}_seq"
+            sql = f"SELECT currval('{sequence_name}')"
+            cur.execute(sql)
+            row = cur.fetchone()
+            cur.close()
+            conn.close()
+            if row:
+                return int(row[0])
+            return None
+        except Exception as e:
+            logger.error(f"Error obteniendo último ID de {table_name}: {e}")
+            return None
+    
+    def get_animales_activos_en_refugio(self) -> List[Dict[str, Any]]:
+        """Get all active animals currently in refuge (estado_id = 1, ubicacion_id = 1)"""
+        try:
+            conn = self._connect()
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            
+            sql = """
+                SELECT DISTINCT a.id, a.nombre, a.tipo_animal
+                FROM animales a
+                LEFT JOIN LATERAL (
+                    SELECT estado_id, ubicacion_id
+                    FROM eventos
+                    WHERE animal_id = a.id
+                    ORDER BY fecha DESC
+                    LIMIT 1
+                ) e ON true
+                WHERE a.activo = true 
+                  AND e.estado_id in(2,3
+                  AND e.ubicacion_id = 1
+                ORDER BY a.nombre
+            """
+            
+            cur.execute(sql)
+            rows = cur.fetchall()
+            cur.close()
+            conn.close()
+            
+            # Convert RealDictRow to normal dict
+            result = [dict(row) for row in rows]
+            logger.info(f"Animales activos en refugio: {len(result)}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo animales activos en refugio: {e}")
+            return []
+    
     def get_dashboard_data(self) -> List[Dict[str, Any]]:
         """Ejecutar query del dashboard y retornar lista de registros"""
         try:

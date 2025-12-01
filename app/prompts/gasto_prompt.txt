@@ -6,24 +6,40 @@ DESCRIPCIÓN: Se reporta dinero gastado o invertido en animal o rescate
 
 ESTRUCTURA DE RESPUESTA (JSON):
 {
-    "monto": <número>,
-    "fecha": "<YYYY-MM-DD_o_descripción>",
-    "categoria_id": <número>,
-    "descripcion": "<qué_se_gastó>",
-    "proveedor": "<establecimiento_u_otro>",
+    "fecha": "<YYYY-MM-DD HH:MM:SS>",
+    "proveedor": "<establecimiento>",
     "responsable": "<quién_pagó>",
-    "forma_de_pago": "<efectivo|tarjeta|otro>"
+    "forma_de_pago": "<efectivo|tarjeta|otro>",
+    "items": [
+        {
+            "monto": <número>,
+            "categoria_id": <número>,
+            "descripcion": "<nombre_del_item>",
+            "nombre_animal": "<nombre_del_animal_o_null>"
+        }
+    ]
 }
 
+IMPORTANTE - TICKETS CON MÚLTIPLES ITEMS:
+- Si hay VARIOS productos/servicios en un ticket → crear UN objeto por cada item en el array "items"
+- Si varios items del ticket son de la MISMA categoría → COMBINARLOS en un solo item sumando los montos
+- Cada item tiene su propio monto y categoria_id
+- La fecha, proveedor, responsable y forma_de_pago son compartidos por todos los items
+- Si un item es ESPECÍFICO para un animal → incluir "nombre_animal"
+- Si un item es GENERAL (para todos) → "nombre_animal": null
+
 CAMPOS OBLIGATORIOS:
-- monto: Cantidad exacta en pesos/moneda (extraer números de "$ 1500", "$1.500", "1500 pesos")
-- fecha: Formato "YYYY-MM-DD" si está disponible, sino descripción (ej. "hoy", "ayer", "2025-11-26")
-- categoria_id: ID numérico basado en tipo de gasto (ver abajo)
+- fecha: Formato "YYYY-MM-DD HH:MM:SS" si hay hora, sino "YYYY-MM-DD"
+- items: Array con al menos 1 item
+  - monto: Cantidad exacta del item (extraer de "$ 1500", "$1.500", "1500 pesos")
+  - categoria_id: ID según tipo de producto/servicio
+  - descripcion: Nombre o detalle del item
+  - nombre_animal: Nombre del animal si se especifica, null si es gasto general
 
 CATEGORÍAS (categoria_id):
 1 = Veterinario (consultas, cirugías, análisis)
 2 = Alimento (comida, agua, snacks para animales)
-3 = Piedritas (arena para gatos, lecho)
+3 = Piedritas (arena para gatos, lecho, pellets de pino)
 4 = Limpieza (jabón, desinfectantes, productos de higiene)
 5 = Medicamentos (medicinas, vacunas, desparasitantes)
 6 = Transporte (gasolina, viáticos, traslados)
@@ -44,11 +60,16 @@ REGLAS DE CATEGORIA_ID:
 - Leer la descripción y determinar categoría
 - "veterinario", "consulta", "operación" → 1
 - "comida", "alimento", "kibble", "lata" → 2
-- "arena", "lecho", "piedritas", "sand" → 3
+- "arena", "lecho", "piedritas", "sand", "pallets", "pino" → 3
 - "jabón", "desinfectante", "limpieza" → 4
-- "medicinas", "vacuna", "inyección", "pastilla" → 5
+- "medicinas", "vacuna", "inyección", "pastilla", "farmacia", "medicación", "suero", "antibiótico", "antiparasitario" → 5
 - "transporte", "gasolina", "viaje", "traslado" → 6
 - Otros gastos no clasificados → 7
+
+IMPORTANTE - AGRUPACIÓN DE ITEMS:
+- Si en un ticket hay múltiples items de la MISMA categoría → COMBINARLOS en uno solo
+- Ejemplo: "FARMACIA $6600" + "MEDICACION $800" → UN solo item "Medicamentos" con monto $7400
+- Solo separar items si son de DIFERENTES categorías o para DIFERENTES animales
 
 CAMPOS OPCIONALES:
 - descripcion: Detalles de qué se gastó ("medicinas para desparasitación")
@@ -56,43 +77,72 @@ CAMPOS OPCIONALES:
 - responsable: Quién pagó ("María", "Refugio Rescate Plus")
 - forma_de_pago: Método usado ("efectivo", "tarjeta de débito", "transferencia")
 
-NOMBRE:
-- Nombre del animal si se especifica en el gasto ("comida para Luna")
-- null si es gasto general sin animal específico
+NOMBRE_ANIMAL - REGLAS DE EXTRACCIÓN:
+- Si el gasto menciona "para [nombre]", "de [nombre]", "[nombre]:" → extraer el nombre
+- Ejemplos: "HUESO para Panchi" → "Panchi", "Consulta de Luna" → "Luna"
+- Si es gasto GENERAL sin animal específico → null
+- Ejemplos: "Comida para gatos", "Arena para todos" → null
 
 EJEMPLOS DE RESPUESTA:
 
-Ejemplo 1 - Gasto completo:
+Ejemplo 1 - Gasto para animal específico:
 {
-    "monto": 1500,
     "fecha": "2025-11-20",
-    "categoria_id": 5,
-    "descripcion": "Medicinas desparasitantes",
-    "proveedor": "Farmacia Veterinaria Plus",
+    "proveedor": "Veterinaria Plus",
     "responsable": "María",
-    "forma_de_pago": "efectivo"
+    "forma_de_pago": "efectivo",
+    "items": [
+        {
+            "monto": 1200,
+            "categoria_id": 7,
+            "descripcion": "HUESO DE FEMUR MAYORAL",
+            "nombre_animal": "Panchi"
+        }
+    ]
 }
 
-Ejemplo 2 - Gasto sin animal específico:
+Ejemplo 2 - Gasto general sin animal específico:
 {
-    "monto": 800,
     "fecha": "2025-11-26",
-    "categoria_id": 2,
-    "descripcion": "Comida balanceada para perros",
     "proveedor": "Petshop La Mascota",
     "responsable": "Refugio",
-    "forma_de_pago": "tarjeta"
+    "forma_de_pago": "tarjeta",
+    "items": [
+        {
+            "monto": 6000,
+            "categoria_id": 2,
+            "descripcion": "Comida balanceada para gatos",
+            "nombre_animal": null
+        }
+    ]
 }
 
-Ejemplo 3 - Gasto con información incompleta:
+Ejemplo 3 - Ticket con múltiples items, algunos específicos:
 {
-    "monto": 2000,
-    "fecha": null,
-    "categoria_id": 1,
-    "descripcion": "Consulta veterinaria",
-    "proveedor": "Dr. López",
+    "fecha": "2025-11-15",
+    "proveedor": "Veterinaria Central",
     "responsable": "Elena",
-    "forma_de_pago": null
+    "forma_de_pago": "efectivo",
+    "items": [
+        {
+            "monto": 800,
+            "categoria_id": 1,
+            "descripcion": "Consulta veterinaria",
+            "nombre_animal": "Luna"
+        },
+        {
+            "monto": 350,
+            "categoria_id": 5,
+            "descripcion": "Desparasitante",
+            "nombre_animal": "Luna"
+        },
+        {
+            "monto": 1500,
+            "categoria_id": 3,
+            "descripcion": "Arena sanitaria",
+            "nombre_animal": null
+        }
+    ]
 }
 
 INSTRUCCIONES FINALES:

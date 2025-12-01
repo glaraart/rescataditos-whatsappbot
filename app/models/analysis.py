@@ -59,15 +59,20 @@ class VisitaVetDetails(BaseModel):
     persona_acompanante: Optional[str] = None
 
 
+class GastoItem(BaseModel):
+    monto: float
+    categoria_id: int
+    descripcion: str
+    nombre_animal: Optional[str] = None
+
+
 class GastoDetails(BaseModel):
     nombre: Optional[str] = None
-    monto: float
     fecha: Optional[str] = None
-    categoria_id: Optional[int] = None
-    descripcion: Optional[str] = None
     proveedor: Optional[str] = None
     responsable: Optional[str] = None
     forma_de_pago: Optional[str] = None
+    items: List[GastoItem]
 
 
 class ConsultaDetails(BaseModel):
