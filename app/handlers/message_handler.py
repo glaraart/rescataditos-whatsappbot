@@ -97,18 +97,27 @@ class MessageHandler(ABC):
             await self.send_message(phone, "❌ Registro cancelado. ¿Deseas intentar de nuevo?")
             self.confirmation_manager.clear_pending_confirmation(phone)
     
-    def _get_raw_from_history(self, phone_history: list) -> RawContent:
+    async def _get_raw_from_history(self, phone_history: list) -> RawContent:
         """Reconstruye RawContent básico desde historial (para recuperar imágenes)"""
-        # Buscar mensajes con imágenes
+        import base64
+        
+        # Buscar mensajes con imágenes y descargarlas nuevamente
         images = []
         for msg in phone_history:
             if msg.get("type") == "image" and msg.get("image"):
                 image_data = msg["image"]
-                images.append({
-                    "id": image_data.get("id"),
-                    "url": image_data.get("url"),
-                    "caption": image_data.get("caption", "")
-                })
+                try:
+                    # Descargar la imagen nuevamente desde WhatsApp
+                    media_url = f"https://graph.facebook.com/v22.0/{image_data.get('id')}"
+                    image_bytes = await self.whatsapp_service.download_media(media_url)
+                    base64_image = base64.b64encode(image_bytes).decode()
+                    
+                    images.append({
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
+                    })
+                except Exception as e:
+                    logger.error(f"Error descargando imagen desde historial: {e}")
         
         return RawContent(phone="", text="", images=images)
     
