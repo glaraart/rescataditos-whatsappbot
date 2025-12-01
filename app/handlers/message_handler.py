@@ -18,11 +18,13 @@ class MessageHandler(ABC):
     details_class: type = None  # Cada handler define su clase de detalles
     
     def __init__(self, ai_service: AIService = None, db_service=None, whatsapp_service=None, confirmation_manager=None):
+        from app.services.drive import DriveService
+        
         self.ai_service = ai_service or AIService()
         self.db_service = db_service
         self.whatsapp_service = whatsapp_service
         self.confirmation_manager = confirmation_manager
-        self.drive_service = None
+        self.drive_service = DriveService()
     
     # ===== ABSTRACT METHODS (cada handler debe implementar) =====
     
