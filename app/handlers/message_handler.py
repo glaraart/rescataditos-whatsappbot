@@ -79,7 +79,7 @@ class MessageHandler(ABC):
             result = self.reconstruct_result(status["detalles_parciales"])
             
             # Obtener raw content para imágenes desde phone_history
-            raw = self._get_raw_from_history(phone_history)
+            raw = await self._get_raw_from_history(phone_history)
             
             success = await self.save_to_db(result, self.db_service, raw)
             
