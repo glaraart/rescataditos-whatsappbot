@@ -76,6 +76,10 @@ class SheetsService:
             rows_to_update = [headers]  # Primera fila: headers
             
             for record in dashboard_data:
+                # Convertir post_id a string para evitar notación científica en Sheets
+                post_id = record.get("Post ID", "")
+                post_id_text = str(post_id) if post_id else ""
+                
                 row = [
                     record.get("animal_id", ""),
                     record.get("Nombre", ""),
@@ -85,7 +89,7 @@ class SheetsService:
                     str(record.get("Fecha Rescate", "")) if record.get("Fecha Rescate") else "",
                     str(record.get("Fecha Estado", "")) if record.get("Fecha Estado") else "",
                     record.get("Contenido", ""),
-                    record.get("Post ID", "")
+                    post_id_text
                 ]
                 rows_to_update.append(row)
             
