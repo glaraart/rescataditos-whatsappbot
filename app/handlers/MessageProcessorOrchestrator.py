@@ -33,14 +33,14 @@ class MessageProcessorOrchestrator:
         """Inicializa handlers disponibles"""
         from app.handlers.nuevo_rescate import NuevoRescateHandler
         from app.handlers.gasto import GastoHandler
-        from app.handlers.visita_vet import VisitaVetHandler
+        from app.handlers.veterinaria import VeterinariaHandler
         from app.handlers.cambio_estado import CambioEstadoHandler
         from app.handlers.consulta import ConsultaHandler
         
         self.handlers = {
             "NUEVO_RESCATE": NuevoRescateHandler,
             "GASTO": GastoHandler,
-            "VISITA_VET": VisitaVetHandler,
+            "VETERINARIA": VeterinariaHandler,
             "CAMBIO_ESTADO": CambioEstadoHandler,
             "CONSULTA": ConsultaHandler,
         }

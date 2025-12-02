@@ -29,6 +29,6 @@ WhatsApp → Webhook → MessageHandler → [AIService, PostgresService, DriveSe
 
 - **nuevo_rescate**: Reportes de animales rescatados
 - **cambio_estado**: Actualizaciones de estado de animales
-- **visita_vet**: Información sobre visitas veterinarias  
-- **gasto**: Registro de gastos relacionados a los animales
+- **veterinaria**: Visitas veterinarias + gastos veterinarios (consultas, cirugías, medicamentos)
+- **gasto**: Registro de gastos NO veterinarios (alimento, limpieza, transporte, etc.)
 - **consulta**: Preguntas generales o información

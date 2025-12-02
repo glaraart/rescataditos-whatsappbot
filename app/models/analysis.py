@@ -49,21 +49,26 @@ class CambioEstadoDetails(BaseModel):
     fecha: Optional[str] = None
 
 
-class VisitaVetDetails(BaseModel):
-    nombre: Optional[str] = None
-    veterinario: Optional[str] = None
-    fecha: Optional[str] = None
-    diagnostico: Optional[str] = None
-    tratamiento: Optional[str] = None
-    proxima_cita: Optional[str] = None
-    persona_acompanante: Optional[str] = None
-
-
 class GastoItem(BaseModel):
     monto: float
     categoria_id: int
     descripcion: str
     nombre_animal: Optional[str] = None
+
+
+class VeterinariaDetails(BaseModel):
+    nombre: Optional[str] = None
+    fecha: Optional[str] = None
+    veterinario: Optional[str] = None
+    diagnostico: Optional[str] = None
+    tratamiento: Optional[str] = None
+    proxima_cita: Optional[str] = None
+    persona_acompanante: Optional[str] = None
+    # Campos de gasto veterinario
+    proveedor: Optional[str] = None
+    responsable: Optional[str] = None
+    forma_de_pago: Optional[str] = None
+    items: List[GastoItem] = Field(default_factory=list)  # Lista de gastos veterinarios
 
 
 class GastoDetails(BaseModel):
@@ -83,7 +88,7 @@ class ConsultaDetails(BaseModel):
 
 class HandlerResult(BaseModel):
     ok: bool = False
-    detalles: Optional[Union[NuevoRescateDetails, GastoDetails, VisitaVetDetails, CambioEstadoDetails, ConsultaDetails]] = None
+    detalles: Optional[Union[NuevoRescateDetails, GastoDetails, VeterinariaDetails, CambioEstadoDetails, ConsultaDetails]] = None
     campos_faltantes: List[str] = Field(default_factory=list)
 
 
