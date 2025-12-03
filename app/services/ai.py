@@ -80,18 +80,22 @@ class AIService:
             )
             
             response_text = response.choices[0].message.content.strip()
+            logger.info(f"Classifier raw response: {response_text}")
             
             # Try to parse as JSON
             try:
                 data = json.loads(response_text)
                 tipos = data.get("tipos", [])
                 if isinstance(tipos, list):
+                    logger.info(f"Parsed tipos: {tipos}")
                     return ClassificationResult(tipos=tipos)
                 else:
                     # Fallback: single type returned as string
+                    logger.warning(f"Tipos is not a list, treating as single: {tipos}")
                     return ClassificationResult(tipos=[tipos] if tipos else [])
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as json_err:
                 # Fallback to old format (single type as text)
+                logger.warning(f"JSON parse error: {json_err}. Treating as plain text: {response_text}")
                 label = response_text.lower()
                 if label == "null" or not label:
                     return ClassificationResult(tipos=[])

@@ -149,16 +149,14 @@ NO confundir:
 - "Rescaté a Rocky en Flores" → {"tipos": ["nuevo_rescate"]}
 - "Gasté $500 rescatando a Rocky" → {"tipos": ["nuevo_rescate", "gasto"]}
 - "Rocky fue adoptado por María" → {"tipos": ["cambio_estado"]}
+- "Perdita en adopción, busca hogar" → {"tipos": ["cambio_estado"]}
 - "Lo llevé al veterinario, le diagnosticaron garrapatas" → {"tipos": ["veterinaria"]}
 - "¿Cómo hago para esterilizar a mi gata?" → {"tipos": ["consulta"]}
 - "Volvimos del parque, recibimos $5000" → {"tipos": ["tracking_movimiento", "gasto"]}
 - "Salimos con Luna y Rocky al parque" → {"tipos": ["tracking_movimiento"]}
-- "Lo llevé al veterinario, le diagnosticaron garrapatas" → VISITA_VET
-- "¿Cómo hago para esterilizar a mi gata?" → CONSULTA
-- "Encontramos gatos, compramos arena $300" → NUEVO_RESCATE o GASTO (enfoque principal)
 
-Instrucciones:
-- Prioriza palabras clave indicadas arriba
-- Analiza el PROPÓSITO principal del mensaje
-- Si hay ambigüedad fuerte devuelve "null"
-- Enfócate primero en NUEVO_RESCATE vs GASTO para identificar el mensaje correctamente
+IMPORTANTE:
+- SIEMPRE responde con JSON válido: {"tipos": ["tipo1", "tipo2"]}
+- Si NO estás seguro o es mensaje irrelevante → {"tipos": ["consulta"]}
+- NUNCA respondas con "null" o texto plano
+- El array puede tener 0, 1 o múltiples elementos
