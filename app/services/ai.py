@@ -57,10 +57,13 @@ class AIService:
 
         # 2. fallback to LLM classifier prompt with multimodal content (single call)
         try:
+            logger.info("Iniciando clasificación con LLM...")
             # Load classifier prompt
             template_path = os.path.join(self.prompts_dir, "classifier_prompt.txt")
             with open(template_path, "r", encoding="utf-8") as f:
                 classifier_prompt = f.read()
+            
+            logger.info(f"Prompt cargado, longitud: {len(classifier_prompt)} chars")
             
             # Build user message with text and images
             user_content = [{"type": "text", "text": raw.text or ""}]
@@ -68,6 +71,8 @@ class AIService:
             # Add images if available (raw.images ya está en el formato correcto)
             if raw.images:
                 user_content.extend(raw.images)
+            
+            logger.info(f"Llamando a GPT-5.1 con {len(user_content)} elementos de contenido...")
             
             # Single call to LLM with classifier prompt
             response = await self.client.chat.completions.create(
@@ -102,7 +107,7 @@ class AIService:
                 return ClassificationResult(tipos=[label])
             
         except Exception as e:
-            logger.error(f"Error in classification: {e}")
+            logger.error(f"Error in classification: {e}", exc_info=True)
             return ClassificationResult(tipos=[])
 
     async def audio_to_text(self, audio_file: bytes) -> str:
