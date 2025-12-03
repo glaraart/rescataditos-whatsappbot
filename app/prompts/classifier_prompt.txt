@@ -6,37 +6,44 @@ Eres un clasificador que recibe texto y/o información multimodal y debes identi
 - consulta
 - tracking_movimiento
 
-⚡ REGLAS DE DETECCIÓN AUTOMÁTICA (revisar PRIMERO):
+⚡ PASO 1 - BUSCAR PALABRAS CLAVE (revisar en orden):
 
-1. Si contiene "encontramos", "encontré", "rescatamos", "rescaté", "recogimos" 
-   → {"tipos": ["nuevo_rescate"]}
-   (INCLUSO si también dice "adopción", "transitante", "busca hogar")
+1️⃣ ¿Contiene "encontramos", "encontré", "rescatamos", "rescaté", "recogimos", "recogí"?
+   SÍ → nuevo_rescate
+   
+1️⃣b ¿Tiene IMAGEN + descripción física (edad, color, tamaño) + estado de salud (vacunas, desparasitado)?
+   SÍ → nuevo_rescate (es un reporte de animal nuevo con foto)
+   
+2️⃣ ¿Contiene "salimos", "fuimos", "volvimos", "regresamos", "llegamos" + "parque"/"vet"/"compras"?
+   SÍ → tracking_movimiento
+   
+3️⃣ ¿Contiene "veterinario", "veterinaria", "clínica", "diagnóstico", "vet"?
+   SÍ → veterinaria
+   
+4️⃣ ¿Contiene "$", "pesos", "gasté", "gastamos", "pagué", "compré", "monto"?
+   SÍ → gasto (si NO es veterinario)
+   
+5️⃣ ¿Contiene "fue adoptado", "adoptado por", "ahora está", "pasó a" (SIN palabras de rescate)?
+   SÍ → cambio_estado
+   
+6️⃣ ¿Es una pregunta o saludo?
+   SÍ → consulta
 
-2. Si contiene "salimos", "fuimos", "volvimos", "regresamos" + destino (parque/vet/compras)
-   → {"tipos": ["tracking_movimiento"]}
+⚡ PASO 2 - FORMATO DE RESPUESTA:
 
-3. Si contiene "veterinario", "veterinaria", "clínica", "diagnóstico", "tratamiento"
-   → {"tipos": ["veterinaria"]}
+SIEMPRE responde con JSON válido:
+{"tipos": ["tipo1", "tipo2"]}
 
-4. Si contiene "$", "pesos", "gasté", "pagué", "compré" (NO veterinario)
-   → {"tipos": ["gasto"]}
-
-5. Si menciona animal existente + "fue adoptado", "ahora está", "pasó a"
-   → {"tipos": ["cambio_estado"]}
-
-6. Si es pregunta o saludo
-   → {"tipos": ["consulta"]}
-
-Responde SOLO con JSON válido:
-{"tipos": ["tipo1", "tipo2", ...]}
-
-Un mensaje puede tener múltiples tipos:
+Ejemplos:
+- "Encontramos a Perdita" → {"tipos": ["nuevo_rescate"]}
+- [Imagen] + "Perdita, 2 meses, desparasitada, primera vacuna" → {"tipos": ["nuevo_rescate"]}
 - "Rescatamos un perro, gastamos $800" → {"tipos": ["nuevo_rescate", "gasto"]}
-- "Volvimos del parque, recibimos $5000" → {"tipos": ["tracking_movimiento", "gasto"]}
+- "Volvimos del parque" → {"tipos": ["tracking_movimiento"]}
+- Si no detectas nada → {"tipos": ["consulta"]}
 
-Texto de ejemplo: "{text}"
+Texto a clasificar: "{text}"
 
-ESPECIFICACIONES DETALLADAS POR TIPO:
+===== DETALLES ADICIONALES (solo para contexto) =====
 
 ===== NUEVO_RESCATE =====
 ¿CUÁNDO clasificar como NUEVO_RESCATE?
