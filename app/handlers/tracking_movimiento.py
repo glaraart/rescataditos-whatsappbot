@@ -101,12 +101,12 @@ class TrackingMovimientoHandler(MessageHandler):
         logger.info(f"✅ Tracking guardado: {datos.tipo} {datos.destino} con {len(animal_ids)} animales")
         return True
 
-    def format_confirmation_fields(self, result: HandlerResult) -> dict:
+    def format_confirmation_fields(self, detalles) -> dict:
         """Format data for confirmation message."""
-        if not isinstance(result.detalles, TrackingMovimientoDetails):
+        if not isinstance(detalles, TrackingMovimientoDetails):
             return {}
         
-        datos = result.detalles
+        datos = detalles
         
         # Emoji según tipo
         emoji = "🚶" if datos.tipo == "salida" else "🏠"
