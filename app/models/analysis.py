@@ -35,7 +35,7 @@ class NuevoRescateDetails(BaseModel):
     edad: str
     color_de_pelo: Optional[List[ColorDePelo]] = None
     condicion_de_salud_inicial: str
-    ubicacion: str
+    ubicacion: Optional[str] = None
     cambio_estado: CambioEstadoInfo
 
 
