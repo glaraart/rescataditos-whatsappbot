@@ -267,3 +267,138 @@ class PostgresService:
         except Exception as e:
             logger.error(f"Error obteniendo datos del dashboard: {e}")
             return []
+
+    # ===== TRACKING MOVIMIENTO METHODS =====
+    
+    def get_all_active_animals(self) -> List[Dict[str, Any]]:
+        """Get all active animals (activo=true)"""
+        try:
+            conn = self._connect()
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            sql = "SELECT id, nombre, tipo_animal FROM animales WHERE activo = true ORDER BY nombre"
+            cur.execute(sql)
+            rows = cur.fetchall()
+            cur.close()
+            conn.close()
+            return [dict(row) for row in rows]
+        except Exception as e:
+            logger.error(f"Error obteniendo animales activos: {e}")
+            return []
+    
+    def insert_tracking_movimiento(self, data: Dict[str, Any]) -> Optional[int]:
+        """Insert tracking_movimiento record and return ID"""
+        try:
+            conn = self._connect()
+            cur = conn.cursor()
+            
+            sql = """
+                INSERT INTO tracking_movimiento 
+                (tipo, destino, responsable, fecha, observaciones)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+            """
+            
+            cur.execute(sql, (
+                data.get('tipo'),
+                data.get('destino'),
+                data.get('responsable'),
+                data.get('fecha'),
+                data.get('observaciones')
+            ))
+            
+            tracking_id = cur.fetchone()[0]
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            logger.info(f"✅ Tracking insertado con ID: {tracking_id}")
+            return tracking_id
+            
+        except Exception as e:
+            logger.error(f"Error insertando tracking_movimiento: {e}")
+            return None
+    
+    def insert_tracking_movimiento_animal(self, data: Dict[str, Any]) -> bool:
+        """Insert tracking_movimiento_animales (N:N relationship)"""
+        try:
+            conn = self._connect()
+            cur = conn.cursor()
+            
+            sql = """
+                INSERT INTO tracking_movimiento_animales 
+                (tracking_id, animal_id)
+                VALUES (%s, %s)
+            """
+            
+            cur.execute(sql, (
+                data.get('tracking_id'),
+                data.get('animal_id')
+            ))
+            
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error insertando tracking_movimiento_animal: {e}")
+            return False
+    
+    def get_ultima_salida_parque(self) -> Optional[Dict[str, Any]]:
+        """Get the most recent park outing (salida to parque) that hasn't returned yet"""
+        try:
+            conn = self._connect()
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            
+            sql = """
+                SELECT * FROM tracking_movimiento
+                WHERE destino = 'parque' 
+                  AND tipo = 'salida'
+                  AND NOT EXISTS (
+                      SELECT 1 FROM tracking_movimiento t2
+                      WHERE t2.destino = 'parque'
+                        AND t2.tipo = 'regreso'
+                        AND t2.fecha >= tracking_movimiento.fecha
+                  )
+                ORDER BY fecha DESC, hora_salida DESC
+                LIMIT 1
+            """
+            
+            cur.execute(sql)
+            row = cur.fetchone()
+            cur.close()
+            conn.close()
+            
+            if row:
+                return dict(row)
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo última salida al parque: {e}")
+            return None
+    
+    def get_animales_de_salida(self, tracking_id: int) -> List[Dict[str, Any]]:
+        """Get all animals that went on a specific outing"""
+        try:
+            conn = self._connect()
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            
+            sql = """
+                SELECT a.id, a.nombre, a.tipo_animal
+                FROM animales a
+                INNER JOIN tracking_movimiento_animales tma ON tma.animal_id = a.id
+                WHERE tma.tracking_id = %s
+                ORDER BY a.nombre
+            """
+            
+            cur.execute(sql, (tracking_id,))
+            rows = cur.fetchall()
+            cur.close()
+            conn.close()
+            
+            return [dict(row) for row in rows]
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo animales de salida {tracking_id}: {e}")
+            return []

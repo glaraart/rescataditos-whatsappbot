@@ -79,14 +79,27 @@ class AIService:
                 temperature=0.0,
             )
             
-            label = response.choices[0].message.content.strip().lower()
-            if label == "null":
-                return ClassificationResult(tipo=None)
-            return ClassificationResult(tipo=label)
+            response_text = response.choices[0].message.content.strip()
+            
+            # Try to parse as JSON
+            try:
+                data = json.loads(response_text)
+                tipos = data.get("tipos", [])
+                if isinstance(tipos, list):
+                    return ClassificationResult(tipos=tipos)
+                else:
+                    # Fallback: single type returned as string
+                    return ClassificationResult(tipos=[tipos] if tipos else [])
+            except json.JSONDecodeError:
+                # Fallback to old format (single type as text)
+                label = response_text.lower()
+                if label == "null" or not label:
+                    return ClassificationResult(tipos=[])
+                return ClassificationResult(tipos=[label])
             
         except Exception as e:
             logger.error(f"Error in classification: {e}")
-            return ClassificationResult(tipo=None)
+            return ClassificationResult(tipos=[])
 
     async def audio_to_text(self, audio_file: bytes) -> str:
         """Convierte audio a texto usando Whisper de OpenAI"""

@@ -137,7 +137,41 @@ class GastoHandler(MessageHandler):
                 }
                 return db_service.insert_record(gasto_animal_record, "gasto_animal")
             
-            # CASO 2: Gasto compartido (alimento o piedritas) - distribuir entre animales activos
+            # CASO 2: Donaciones del parque - distribuir entre animales que fueron al parque
+            elif item.categoria_id == 7 and "donacion" in item.descripcion.lower():
+                # Buscar la última salida al parque que no haya regresado (o más reciente)
+                ultima_salida = db_service.get_ultima_salida_parque()
+                if not ultima_salida:
+                    logger.warning(f"No hay salida al parque reciente para asignar donación")
+                    # Distribuir entre todos los animales activos como fallback
+                    animales_activos = db_service.get_animales_activos_en_refugio()
+                else:
+                    # Obtener animales que fueron en esa salida
+                    animales_activos = db_service.get_animales_de_salida(ultima_salida['id'])
+                
+                if not animales_activos or len(animales_activos) == 0:
+                    logger.warning(f"No hay animales para asignar donación {gasto_id}")
+                    return False
+                
+                # Calcular monto por animal (distribución equitativa)
+                monto_por_animal = item.monto / len(animales_activos)
+                
+                # Insertar un registro en gasto_animal por cada animal
+                all_ok = True
+                for animal in animales_activos:
+                    gasto_animal_record = {
+                        "gasto_id": gasto_id,
+                        "animal_id": animal["id"],
+                        "monto": monto_por_animal
+                    }
+                    if not db_service.insert_record(gasto_animal_record, "gasto_animal"):
+                        logger.error(f"Error asignando donación a animal {animal['id']}")
+                        all_ok = False
+                
+                logger.info(f"✅ Donación de ${item.monto} distribuida entre {len(animales_activos)} animales del parque")
+                return all_ok
+            
+            # CASO 3: Gasto compartido (alimento o piedritas) - distribuir entre animales activos
             elif item.categoria_id in [2, 3]:  # 2=Alimento, 3=Piedritas
                 # Obtener animales activos en refugio
                 animales_activos = db_service.get_animales_activos_en_refugio()
@@ -162,7 +196,7 @@ class GastoHandler(MessageHandler):
                 
                 return all_ok
             
-            # CASO 3: Gasto general (veterinario, transporte, etc.) - NO insertar en gasto_animal
+            # CASO 4: Gasto general (transporte, limpieza, etc.) - NO insertar en gasto_animal
             else:
                 logger.info(f"Gasto {gasto_id} es general, no se asigna a animales")
                 return True

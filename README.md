@@ -30,5 +30,14 @@ WhatsApp → Webhook → MessageHandler → [AIService, PostgresService, DriveSe
 - **nuevo_rescate**: Reportes de animales rescatados
 - **cambio_estado**: Actualizaciones de estado de animales
 - **veterinaria**: Visitas veterinarias + gastos veterinarios (consultas, cirugías, medicamentos)
-- **gasto**: Registro de gastos NO veterinarios (alimento, limpieza, transporte, etc.)
+- **gasto**: Registro de gastos NO veterinarios (alimento, limpieza, transporte, donaciones, etc.)
+- **tracking_movimiento**: Salidas y regresos de animales (parque, veterinaria, compras, entregas en adopción)
 - **consulta**: Preguntas generales o información
+
+### ✨ Clasificación Múltiple
+
+El sistema puede detectar **múltiples intenciones** en un solo mensaje:
+- "Volvimos del parque, recibimos $5000" → `tracking_movimiento` + `gasto`
+- "Rescatamos un perro, gastamos $800 en transporte" → `nuevo_rescate` + `gasto`
+
+Cada tipo se procesa secuencialmente con su propia confirmación.

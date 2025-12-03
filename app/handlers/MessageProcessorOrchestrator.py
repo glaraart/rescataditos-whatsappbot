@@ -36,6 +36,7 @@ class MessageProcessorOrchestrator:
         from app.handlers.veterinaria import VeterinariaHandler
         from app.handlers.cambio_estado import CambioEstadoHandler
         from app.handlers.consulta import ConsultaHandler
+        from app.handlers.tracking_movimiento import TrackingMovimientoHandler
         
         self.handlers = {
             "NUEVO_RESCATE": NuevoRescateHandler,
@@ -43,6 +44,7 @@ class MessageProcessorOrchestrator:
             "VETERINARIA": VeterinariaHandler,
             "CAMBIO_ESTADO": CambioEstadoHandler,
             "CONSULTA": ConsultaHandler,
+            "TRACKING_MOVIMIENTO": TrackingMovimientoHandler,
         }
     
     async def process_message(self, message):
@@ -62,23 +64,27 @@ class MessageProcessorOrchestrator:
             
             # Clasificar SIEMPRE primero (saber qué tipo de mensaje es)
             classification = await self.ai_service.classify(raw)
-            tipo = classification.tipo
+            tipos = classification.tipos  # Array de tipos
             
-            # Convertir a mayúsculas para coincidir con los handlers
-            if tipo:
-                tipo = tipo.upper()
-            
-            # Validar tipo y delegar TODO al handler
-            if not tipo or tipo not in self.handlers:
-                logger.warning(f"No handler para tipo={tipo}, phone={phone}")
+            # Validar que haya al menos un tipo
+            if not tipos or len(tipos) == 0:
+                logger.warning(f"No se detectó ningún tipo, phone={phone}")
                 await self.whatsapp_service.send_message(
                     phone, "❌ No pude procesar tu solicitud."
                 )
                 return
             
-            # El handler se encarga de TODO: confirmación, análisis, validación, guardado
-            handler = self._get_handler_instance(tipo)
-            await handler.handle_message_flow(phone, raw, tipo, phone_history)
+            # Procesar cada tipo detectado en secuencia
+            for tipo in tipos:
+                tipo_upper = tipo.upper()
+                
+                if tipo_upper not in self.handlers:
+                    logger.warning(f"No handler para tipo={tipo_upper}, phone={phone}")
+                    continue
+                
+                # El handler se encarga de TODO: confirmación, análisis, validación, guardado
+                handler = self._get_handler_instance(tipo_upper)
+                await handler.handle_message_flow(phone, raw, tipo_upper, phone_history)
 
             
         except Exception as e:

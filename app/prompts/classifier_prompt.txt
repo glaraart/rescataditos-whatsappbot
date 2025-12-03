@@ -1,11 +1,21 @@
-Eres un clasificador que recibe texto y/o información multimodal y debes elegir uno de los siguientes tipos:
+Eres un clasificador que recibe texto y/o información multimodal y debes identificar TODOS los tipos presentes:
 - nuevo_rescate
 - cambio_estado
 - veterinaria
 - gasto
 - consulta
+- tracking_movimiento
 
-Responde SOLO con el nombre del tipo en minúsculas o "null" si no puedes decidir.
+IMPORTANTE: Un mensaje puede contener MÚLTIPLES tipos. Por ejemplo:
+- "Volvimos del parque, recibimos $5000" → tracking_movimiento + gasto
+- "Rescatamos un perro negro, gastamos $800 en transporte" → nuevo_rescate + gasto
+- "Llevamos a Luna al vet, nos cobraron $4500" → veterinaria (unificado)
+
+Responde SOLO con un JSON válido en este formato exacto:
+{"tipos": ["tipo1", "tipo2", ...]}
+
+Si no detectas ningún tipo, responde:
+{"tipos": []}
 
 Texto de ejemplo: "{text}"
 
@@ -104,17 +114,45 @@ Ejemplos:
 - "Hola, ¿cómo están?"
 - "Buenos días, gracias por el trabajo que hacen"
 
+===== TRACKING_MOVIMIENTO =====
+¿CUÁNDO clasificar como TRACKING_MOVIMIENTO?
+- Se reporta una SALIDA física de animales (al parque, a compras, al veterinario, entrega en adopción)
+- Se reporta un REGRESO de animales después de una salida
+- Se menciona DESTINO específico (parque, veterinaria, compras, entrega_adopcion)
+- Incluye información de responsable, hora, animales que fueron
+- Puede incluir donaciones recibidas durante la salida
+
+Palabras clave: "salimos", "fuimos", "volvimos", "regresamos", "llevamos a", "fueron al", "salida al parque", "paseo", "volvieron", "llegamos", "de vuelta"
+Ejemplos:
+- "Salimos al parque con Luna y Rocky a las 10am"
+- "Volvimos del parque, recibimos $5000 de donaciones"
+- "Llevamos a Martí y Pongo a Parque Centenario"
+- "Regresamos a las 4pm, todo bien"
+
 ===== DIFERENCIACIÓN CRÍTICA COMPLETA =====
 NUEVO_RESCATE: reporte de RESCATE/HALLAZGO de animal nuevo
 CAMBIO_ESTADO: ACTUALIZACIÓN de estado/ubicación/responsable de animal existente
-VISITA_VET: CONSULTA MÉDICA con diagnóstico y/o tratamiento
-GASTO: DINERO gastado/invertido
+VETERINARIA: CONSULTA MÉDICA con diagnóstico y/o tratamiento (con o sin gasto)
+GASTO: DINERO gastado/invertido (NO veterinario)
+TRACKING_MOVIMIENTO: SALIDA o REGRESO físico de animales
 CONSULTA: PREGUNTA general sin reporte específico
 
+REGLAS DE PRIORIDAD (orden de aparición en el array):
+1. tracking_movimiento (si hay salida/regreso)
+2. nuevo_rescate (si hay rescate)
+3. veterinaria (si hay consulta médica)
+4. cambio_estado (si hay cambio de situación)
+5. gasto (si hay dinero gastado NO veterinario)
+6. consulta (si hay pregunta)
+
 NO confundir:
-- "Rescaté a Rocky en Flores" → NUEVO_RESCATE
-- "Gasté $500 rescatando a Rocky" → GASTO
-- "Rocky fue adoptado por María" → CAMBIO_ESTADO
+- "Rescaté a Rocky en Flores" → {"tipos": ["nuevo_rescate"]}
+- "Gasté $500 rescatando a Rocky" → {"tipos": ["nuevo_rescate", "gasto"]}
+- "Rocky fue adoptado por María" → {"tipos": ["cambio_estado"]}
+- "Lo llevé al veterinario, le diagnosticaron garrapatas" → {"tipos": ["veterinaria"]}
+- "¿Cómo hago para esterilizar a mi gata?" → {"tipos": ["consulta"]}
+- "Volvimos del parque, recibimos $5000" → {"tipos": ["tracking_movimiento", "gasto"]}
+- "Salimos con Luna y Rocky al parque" → {"tipos": ["tracking_movimiento"]}
 - "Lo llevé al veterinario, le diagnosticaron garrapatas" → VISITA_VET
 - "¿Cómo hago para esterilizar a mi gata?" → CONSULTA
 - "Encontramos gatos, compramos arena $300" → NUEVO_RESCATE o GASTO (enfoque principal)

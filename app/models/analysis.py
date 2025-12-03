@@ -12,7 +12,7 @@ class RawContent(BaseModel):
 
 
 class ClassificationResult(BaseModel):
-    tipo: Optional[str] = None
+    tipos: List[str] = Field(default_factory=list)
 
 
 # ===== TIPOS ESPECÍFICOS POR TIPO DE MENSAJE =====
@@ -86,9 +86,18 @@ class ConsultaDetails(BaseModel):
     respuesta_sugerida: Optional[str] = None
 
 
+class TrackingMovimientoDetails(BaseModel):
+    tipo: str  # 'salida' or 'regreso'
+    destino: str  # 'parque', 'veterinaria', 'compras', 'entrega_adopcion'
+    responsable: Optional[str] = None
+    animales: List[str]  # Lista de nombres de animales
+    fecha: Optional[str] = None
+    observaciones: Optional[str] = None
+
+
 class HandlerResult(BaseModel):
     ok: bool = False
-    detalles: Optional[Union[NuevoRescateDetails, GastoDetails, VeterinariaDetails, CambioEstadoDetails, ConsultaDetails]] = None
+    detalles: Optional[Union[NuevoRescateDetails, GastoDetails, VeterinariaDetails, CambioEstadoDetails, ConsultaDetails, TrackingMovimientoDetails]] = None
     campos_faltantes: List[str] = Field(default_factory=list)
 
 
