@@ -28,11 +28,14 @@ ESPECIFICACIONES POR TIPO:
 - Se menciona DÓNDE fue encontrado (ubicación geográfica)
 - Incluye información de SALUD inicial (heridas, estado, vacunas, desparasitación)
 - Es un reporte nuevo de un animal ingresando al sistema
+- Aunque diga "en adopción" o "busca hogar", si menciona "encontramos", "rescatamos" → es NUEVO_RESCATE
 
-Palabras clave: "rescaté", "encontré", "recogimos", "lo encontramos", "estaba tirado", "cachorro", "gatito", "animal perdido"
+Palabras clave: "rescaté", "encontré", "recogimos", "lo encontramos", "encontramos", "estaba tirado", "cachorro", "gatito", "animal perdido"
 Ejemplos:
 - "Rescaté un perro en Villa Urquiza, negro con blanco, cachorrito, parece tener herida"
 - "Encontramos un gato gris en la puerta, está bien de salud, desparasitado"
+- "Encontramos a Perdita y está en adopción" → NUEVO_RESCATE (animal recién encontrado listo para adopción)
+- "Perdita en adopción, busca hogar" → CAMBIO_ESTADO (solo si NO menciona "encontramos/rescatamos")
 
 ===== GASTO =====
 ¿CUÁNDO clasificar como GASTO?
@@ -147,13 +150,18 @@ REGLAS DE PRIORIDAD (orden de aparición en el array):
 
 NO confundir:
 - "Rescaté a Rocky en Flores" → {"tipos": ["nuevo_rescate"]}
+- "Encontramos a Perdita y está en adopción" → {"tipos": ["nuevo_rescate"]}
 - "Gasté $500 rescatando a Rocky" → {"tipos": ["nuevo_rescate", "gasto"]}
 - "Rocky fue adoptado por María" → {"tipos": ["cambio_estado"]}
-- "Perdita en adopción, busca hogar" → {"tipos": ["cambio_estado"]}
+- "Perdita en adopción, busca hogar" (SIN "encontramos") → {"tipos": ["cambio_estado"]}
 - "Lo llevé al veterinario, le diagnosticaron garrapatas" → {"tipos": ["veterinaria"]}
 - "¿Cómo hago para esterilizar a mi gata?" → {"tipos": ["consulta"]}
 - "Volvimos del parque, recibimos $5000" → {"tipos": ["tracking_movimiento", "gasto"]}
 - "Salimos con Luna y Rocky al parque" → {"tipos": ["tracking_movimiento"]}
+
+REGLA CRÍTICA - NUEVO_RESCATE vs CAMBIO_ESTADO:
+- Si menciona "encontramos", "rescatamos", "recogimos" → SIEMPRE es NUEVO_RESCATE (aunque diga "en adopción")
+- Solo es CAMBIO_ESTADO si NO hay palabras de rescate/hallazgo Y menciona cambio de estado
 
 IMPORTANTE:
 - SIEMPRE responde con JSON válido: {"tipos": ["tipo1", "tipo2"]}
