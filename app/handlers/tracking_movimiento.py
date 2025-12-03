@@ -139,3 +139,13 @@ class TrackingMovimientoHandler(MessageHandler):
             fields["📝 Observaciones"] = datos.observaciones
         
         return fields
+
+    def reconstruct_result(self, detalles_parciales: dict) -> HandlerResult:
+        """Reconstruye HandlerResult desde confirmación pendiente"""
+        try:
+            detalles = TrackingMovimientoDetails(**detalles_parciales)
+            result = HandlerResult(detalles=detalles)
+            return self.validate(result)
+        except Exception as e:
+            logger.error(f"Error reconstruyendo tracking_movimiento: {e}")
+            return HandlerResult(detalles=None, ok=False, campos_faltantes=["Error al reconstruir datos"])
