@@ -48,12 +48,13 @@ class AIService:
         """
         Classify raw content using rules first, then LLM as fallback.
         Considers text AND images for better classification.
-        Returns a ClassificationResult with tipo.
+        Returns a ClassificationResult with tipos.
         """
         # 1. try fast rules on text first
         label = self._apply_rules(raw.text)
         if label:
-            return ClassificationResult(tipo=label)
+            logger.info(f"Regla aplicada: {label}")
+            return ClassificationResult(tipos=[label])
 
         # 2. fallback to LLM classifier prompt with multimodal content (single call)
         try:
