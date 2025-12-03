@@ -33,7 +33,7 @@ class NuevoRescateDetails(BaseModel):
     nombre: str
     tipo_animal: str
     edad: str
-    color_de_pelo: List[ColorDePelo]
+    color_de_pelo: Optional[List[ColorDePelo]] = None
     condicion_de_salud_inicial: str
     ubicacion: str
     cambio_estado: CambioEstadoInfo

@@ -43,6 +43,7 @@ class NuevoRescateHandler(MessageHandler):
             "cambio_estado": result.detalles.cambio_estado,
         }
         
+        # Campos obligatorios: marcar como faltantes si son None o listas/strings vacíos
         missing = [k for k, v in required_fields.items() if v is None or (isinstance(v, (list, str)) and not v)]
         result.campos_faltantes = missing
         result.ok = len(missing) == 0

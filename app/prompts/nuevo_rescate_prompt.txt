@@ -27,7 +27,7 @@ CAMPOS A EXTRAER:
 - nombre: Nombre del animal (null si no se menciona)
 - tipo_animal: "perro", "gato", "otro" (basado en foto o descripción)
 - edad: Formato "X meses" o "X años" (ver reglas de conversión)
-- color_de_pelo: Array de 1-3 objetos con color y porcentaje (sumar ≈100%)
+- color_de_pelo: Array de 1-3 objetos con color y porcentaje (sumar ≈100%). Si no se menciona color, usar array vacío []
 - condicion_de_salud_inicial: Descripción integrada de salud
 - ubicacion: Lugar geográfico del rescate
 - cambio_estado: Estado inicial del animal en el sistema (siempre ubicacion_id=2, estado_id=2, tipo_relacion_id=4)

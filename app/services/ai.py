@@ -25,16 +25,30 @@ class AIService:
         self.prompts_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "prompts"))
 
         # Simple rules for fast classification
+        # Priority keywords that override scoring
+        self.priority_rules = [
+            ("nuevo_rescate", [r"\bencontramos\b", r"\brescatamos\b", r"\brecogimos\b", r"\bhallamos\b"]),
+        ]
+        
+        # Standard rules (used if no priority match)
         self.rules = [
             ("gasto", [r"\bmonto\b", r"\bpesos\b", r"\$", r"pagamos", r"factura", r"compramos"]),
             ("visita_vet", [r"veterinari", r"veterinario", r"diagnost", r"tratamiento", r"consulta vet"]),
-            ("nuevo_rescate", [r"rescat", r"encontr[aeo]", r"cachorr", r"encontramos", r"hallad"]),
+            ("nuevo_rescate", [r"rescat", r"encontr[aeo]", r"cachorr", r"hallad"]),
             ("cambio_estado", [r"adoptad", r"adopci[oó]n", r"adoptar", r"fallec", r"en tr[áa]nsito", r"transit"]),
         ]
 
     def _apply_rules(self, text: str) -> Optional[str]:
         """Return a predicted tipo using keyword rules, or None"""
         t = text.lower() if text else ""
+        
+        # Check priority rules first (exact match wins)
+        for label, patterns in self.priority_rules:
+            for p in patterns:
+                if re.search(p, t):
+                    return label
+        
+        # Fallback to scoring rules
         scores = {}
         for label, patterns in self.rules:
             for p in patterns:

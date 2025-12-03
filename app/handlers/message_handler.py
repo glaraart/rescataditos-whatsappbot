@@ -248,6 +248,32 @@ class MessageHandler(ABC):
             
             logger.info(f"Handler result: {result}")
             
+            # Verificar si el animal no existe (cambio_estado sin animal registrado)
+            # En este caso, redirigir automáticamente a nuevo_rescate
+            if not result.ok and result.campos_faltantes:
+                animal_no_encontrado = next((c for c in result.campos_faltantes if c.startswith("animal_no_encontrado")), None)
+                if animal_no_encontrado:
+                    nombre = animal_no_encontrado.split(": ")[1] if ": " in animal_no_encontrado else "desconocido"
+                    logger.info(f"Animal '{nombre}' no encontrado en cambio_estado, redirigiendo a nuevo_rescate")
+                    
+                    # Importar el handler de nuevo_rescate para procesar
+                    from app.handlers.nuevo_rescate import NuevoRescateHandler
+                    nuevo_rescate_handler = NuevoRescateHandler(
+                        ai_service=self.ai_service,
+                        db_service=self.db_service,
+                        whatsapp_service=self.whatsapp_service,
+                        confirmation_manager=self.confirmation_manager
+                    )
+                    
+                    # Procesar como nuevo_rescate
+                    await self.send_message(
+                        phone,
+                        f"ℹ️ Detecté que '{nombre}' no está registrado.\n"
+                        f"Lo registraré como NUEVO RESCATE..."
+                    )
+                    await nuevo_rescate_handler.handle_message_flow(phone, raw, "NUEVO_RESCATE", phone_history)
+                    return
+            
             # Verificar si hay nombre duplicado (caso especial)
             if not result.ok and "nombre_duplicado" in result.campos_faltantes:
                 nombre = result.detalles.nombre if result.detalles else "desconocido"
