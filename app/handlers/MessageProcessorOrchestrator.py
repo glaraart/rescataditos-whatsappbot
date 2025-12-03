@@ -66,11 +66,21 @@ class MessageProcessorOrchestrator:
             classification = await self.ai_service.classify(raw)
             tipos = classification.tipos  # Array de tipos
             
+            logger.info(f"Tipos detectados: {tipos}")
+            
             # Validar que haya al menos un tipo
             if not tipos or len(tipos) == 0:
                 logger.warning(f"No se detectó ningún tipo, phone={phone}")
+                logger.warning(f"Raw text: {raw.text[:200]}...")  # Log primeros 200 chars
                 await self.whatsapp_service.send_message(
-                    phone, "❌ No pude procesar tu solicitud."
+                    phone, 
+                    "🤔 No pude identificar qué tipo de información es este mensaje.\n\n"
+                    "Por favor intenta ser más específico sobre:\n"
+                    "• Rescate de un animal\n"
+                    "• Cambio de estado (adopción, tránsito, etc)\n"
+                    "• Visita veterinaria\n"
+                    "• Gasto realizado\n"
+                    "• Salida/regreso de animales"
                 )
                 return
             
