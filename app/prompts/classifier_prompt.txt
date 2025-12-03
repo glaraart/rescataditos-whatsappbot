@@ -6,33 +6,53 @@ Eres un clasificador que recibe texto y/o información multimodal y debes identi
 - consulta
 - tracking_movimiento
 
-IMPORTANTE: Un mensaje puede contener MÚLTIPLES tipos. Por ejemplo:
-- "Volvimos del parque, recibimos $5000" → tracking_movimiento + gasto
-- "Rescatamos un perro negro, gastamos $800 en transporte" → nuevo_rescate + gasto
-- "Llevamos a Luna al vet, nos cobraron $4500" → veterinaria (unificado)
+⚡ REGLAS DE DETECCIÓN AUTOMÁTICA (revisar PRIMERO):
 
-Responde SOLO con un JSON válido en este formato exacto:
+1. Si contiene "encontramos", "encontré", "rescatamos", "rescaté", "recogimos" 
+   → {"tipos": ["nuevo_rescate"]}
+   (INCLUSO si también dice "adopción", "transitante", "busca hogar")
+
+2. Si contiene "salimos", "fuimos", "volvimos", "regresamos" + destino (parque/vet/compras)
+   → {"tipos": ["tracking_movimiento"]}
+
+3. Si contiene "veterinario", "veterinaria", "clínica", "diagnóstico", "tratamiento"
+   → {"tipos": ["veterinaria"]}
+
+4. Si contiene "$", "pesos", "gasté", "pagué", "compré" (NO veterinario)
+   → {"tipos": ["gasto"]}
+
+5. Si menciona animal existente + "fue adoptado", "ahora está", "pasó a"
+   → {"tipos": ["cambio_estado"]}
+
+6. Si es pregunta o saludo
+   → {"tipos": ["consulta"]}
+
+Responde SOLO con JSON válido:
 {"tipos": ["tipo1", "tipo2", ...]}
 
-Si no detectas ningún tipo, responde:
-{"tipos": []}
+Un mensaje puede tener múltiples tipos:
+- "Rescatamos un perro, gastamos $800" → {"tipos": ["nuevo_rescate", "gasto"]}
+- "Volvimos del parque, recibimos $5000" → {"tipos": ["tracking_movimiento", "gasto"]}
 
 Texto de ejemplo: "{text}"
 
-ESPECIFICACIONES POR TIPO:
+ESPECIFICACIONES DETALLADAS POR TIPO:
 
 ===== NUEVO_RESCATE =====
 ¿CUÁNDO clasificar como NUEVO_RESCATE?
+- PRIORIDAD MÁXIMA: Si menciona "encontramos", "rescatamos", "recogimos" → ES nuevo_rescate
 - Se reporta el RESCATE de un animal (encontrado, rescatado, recogido de la calle)
 - Hay descripción física del animal (edad, color, raza, condición física)
-- Se menciona DÓNDE fue encontrado (ubicación geográfica)
 - Incluye información de SALUD inicial (heridas, estado, vacunas, desparasitación)
 - Es un reporte nuevo de un animal ingresando al sistema
-- Aunque diga "en adopción" o "busca hogar", si menciona "encontramos", "rescatamos" → es NUEVO_RESCATE
+- AUNQUE también diga "en adopción", "busca hogar", "transitante" → SIGUE SIENDO nuevo_rescate
 
-Palabras clave: "rescaté", "encontré", "recogimos", "lo encontramos", "encontramos", "estaba tirado", "cachorro", "gatito", "animal perdido"
+Palabras clave CRÍTICAS: "rescaté", "encontré", "recogimos", "lo encontramos", "encontramos", "rescatamos"
 Ejemplos:
-- "Rescaté un perro en Villa Urquiza, negro con blanco, cachorrito, parece tener herida"
+- "Rescaté un perro en Villa Urquiza" → nuevo_rescate
+- "Encontramos un gato gris en la puerta" → nuevo_rescate  
+- "Encontramos a Perdita, busca hogar, está con transitante" → nuevo_rescate
+- "Rescatamos cachorros, están en adopción" → nuevo_rescate
 - "Encontramos un gato gris en la puerta, está bien de salud, desparasitado"
 - "Encontramos a Perdita y está en adopción" → NUEVO_RESCATE (animal recién encontrado listo para adopción)
 - "Perdita en adopción, busca hogar" → CAMBIO_ESTADO (solo si NO menciona "encontramos/rescatamos")
@@ -80,8 +100,22 @@ Ejemplos:
 
 ===== CAMBIO_ESTADO =====
 ¿CUÁNDO clasificar como CAMBIO_ESTADO?
+- ⚠️ SOLO si NO hay palabras de rescate/hallazgo ("encontramos", "rescatamos", etc.)
 - Se reporta un CAMBIO en la situación del animal (estado, ubicación, responsable)
 - Se informa que el animal fue ADOPTADO, está EN ADOPCIÓN, EN TRÁNSITO, EN TRATAMIENTO
+- Cambia la UBICACIÓN actual del animal (de refugio a hogar, de tránsito a veterinaria, etc)
+- Cambia el RESPONSABLE del animal (nuevo adoptante, voluntario, transitante, etc)
+- Se menciona el NOMBRE de un animal EXISTENTE + su nuevo estado
+- Es una ACTUALIZACIÓN de registro existente, NO un reporte nuevo
+
+Palabras clave: "fue adoptado", "adoptado por", "ahora está", "cambió a", "pasó a", "se lo llevó"
+Ejemplos:
+- "Pongo fue adoptado por la familia García" → cambio_estado
+- "Martí ahora está en tratamiento con un voluntario" → cambio_estado
+- "Luna pasó a veterinaria para cirugía" → cambio_estado
+
+❌ NO ES CAMBIO_ESTADO:
+- "Encontramos a Perdita, busca hogar" → nuevo_rescate (tiene "encontramos")
 - Cambia la UBICACIÓN actual del animal (de refugio a hogar, de tránsito a veterinaria, etc)
 - Cambia el RESPONSABLE del animal (nuevo adoptante, voluntario, transitante, etc)
 - Se menciona el NOMBRE de un animal existente + su nuevo estado
