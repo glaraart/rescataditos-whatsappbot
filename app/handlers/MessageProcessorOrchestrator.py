@@ -58,11 +58,29 @@ class MessageProcessorOrchestrator:
             # Obtener historial una sola vez (optimización)
             phone_history = self.db_service.search_phone_in_whatsapp_sheet(phone)
             
-            # Construir raw content para clasificación
+            # OPTIMIZACIÓN: Verificar confirmación pendiente ANTES de clasificar (ahorra llamada a GPT)
+            last_message = phone_history[-1] if phone_history else {}
+            confirmation_status = self.confirmation_manager.check_confirmation_status(phone, last_message, phone_history)
+            
+            if confirmation_status:
+                # Hay confirmación pendiente, procesarla directamente sin clasificar
+                tipo_pendiente = confirmation_status.get("tipo", "").upper()
+                logger.info(f"Confirmación pendiente detectada para tipo: {tipo_pendiente} (sin clasificar)")
+                
+                if tipo_pendiente in self.handlers:
+                    handler = self._get_handler_instance(tipo_pendiente)
+                    # Construir raw content solo para el handler
+                    raw = await self.conversation_builder.build_raw_content(phone, phone_history)
+                    await handler.handle_message_flow(phone, raw, tipo_pendiente, phone_history)
+                    return
+                else:
+                    logger.warning(f"No handler para tipo pendiente: {tipo_pendiente}")
+            
+            # Si no hay confirmación pendiente, clasificar el mensaje
             raw = await self.conversation_builder.build_raw_content(phone, phone_history)
             logger.info(f"Raw content: {raw}")
             
-            # Clasificar SIEMPRE primero (saber qué tipo de mensaje es)
+            # Clasificar con GPT
             classification = await self.ai_service.classify(raw)
             tipos = classification.tipos  # Array de tipos
             

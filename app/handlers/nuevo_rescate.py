@@ -58,7 +58,11 @@ class NuevoRescateHandler(MessageHandler):
         
         datos = result.detalles
         id = random.randint(10000, 999999999)
-        fecha_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Usar fecha/hora de Buenos Aires (mismo patrón que cambio_estado)
+        from zoneinfo import ZoneInfo
+        now_argentina = datetime.now(ZoneInfo("America/Argentina/Buenos_Aires"))
+        fecha_actual = now_argentina.strftime("%Y-%m-%d %H:%M:%S")
         
         # Subir imágenes a Drive si hay
         image_url = None
@@ -90,7 +94,10 @@ class NuevoRescateHandler(MessageHandler):
             }
             animal_ok = db_service.insert_record(animal_record, "animales")
             if not animal_ok:
+                logger.error(f"Falló insert_record en tabla animales para {datos.nombre}")
                 return False
+            
+            logger.info(f"✅ Animal insertado: {datos.nombre} con ID {id}")
             
             # Save eventos
             evento_record = {
@@ -102,6 +109,12 @@ class NuevoRescateHandler(MessageHandler):
                 "fecha": fecha_actual,
             }
             evento_ok = db_service.insert_record(evento_record, "eventos")
+            
+            if not evento_ok:
+                logger.error(f"Falló insert_record en tabla eventos para animal_id {id}")
+                return False
+            
+            logger.info(f"✅ Evento insertado para animal_id {id}")
             
             # Save interaccion si hay foto
             if image_url:
@@ -116,10 +129,11 @@ class NuevoRescateHandler(MessageHandler):
                     "seguimiento_requerido": False,
                 }
                 db_service.insert_record(interaccion_record, "interaccion")
+                logger.info(f"✅ Interacción (foto) insertada para animal_id {id}")
             
-            return evento_ok
+            return True
         except Exception as e:
-            logger.error(f"Error guardando nuevo rescate: {e}")
+            logger.error(f"Error guardando nuevo rescate: {e}", exc_info=True)
             return False
     
     def format_confirmation_fields(self, detalles) -> dict:

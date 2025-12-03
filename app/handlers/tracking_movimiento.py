@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from app.handlers.message_handler import MessageHandler
 from app.models.analysis import RawContent, HandlerResult, TrackingMovimientoDetails
 from app.services.ai import AIService
@@ -45,18 +46,10 @@ class TrackingMovimientoHandler(MessageHandler):
         
         datos = result.detalles
         
-        # Normalize fecha
-        fecha = datos.fecha
-        if isinstance(fecha, str):
-            try:
-                fecha = datetime.fromisoformat(fecha.replace(" ", "T"))
-            except Exception:
-                try:
-                    fecha = datetime.strptime(fecha, "%Y-%m-%d")
-                except Exception:
-                    fecha = datetime.now()
-        elif not fecha:
-            fecha = datetime.now()
+        # Usar fecha y hora actual de Buenos Aires (mismo patrón que cambio_estado)
+        tz_ba = ZoneInfo("America/Argentina/Buenos_Aires")
+        now_argentina = datetime.now(tz_ba)
+        fecha_str = now_argentina.strftime("%Y-%m-%d %H:%M:%S")
         
         # Buscar animal_ids por nombres
         animal_ids = []
@@ -83,7 +76,7 @@ class TrackingMovimientoHandler(MessageHandler):
             'tipo': datos.tipo,
             'destino': datos.destino,
             'responsable': datos.responsable,
-            'fecha': fecha,
+            'fecha': fecha_str,
             'observaciones': datos.observaciones
         })
         
@@ -123,20 +116,22 @@ class TrackingMovimientoHandler(MessageHandler):
         # Animales
         animales_texto = ", ".join(datos.animales) if datos.animales else "No especificado"
         
+        # Crear un "nombre" descriptivo para el título
+        titulo = f"{datos.tipo.capitalize()} - {destino_texto}"
+        
+        # Mostrar fecha/hora actual de Buenos Aires (lo que se va a guardar)
+        tz_ba = ZoneInfo("America/Argentina/Buenos_Aires")
+        fecha_hora_actual = datetime.now(tz_ba).strftime("%Y-%m-%d %H:%M:%S")
+        
         fields = {
+            "nombre": titulo,  # Campo especial para el título de confirmación
             f"{emoji} Tipo": datos.tipo.upper(),
             "🎯 Destino": destino_texto,
-            "🐾 Animales": animales_texto
+            "🐾 Animales": animales_texto,
+            "👤 Responsable": datos.responsable or "(sin especificar)",
+            "📅 Fecha/Hora": fecha_hora_actual,
+            "📝 Observaciones": datos.observaciones or "(sin especificar)"
         }
-        
-        if datos.responsable:
-            fields["👤 Responsable"] = datos.responsable
-        
-        if datos.fecha:
-            fields["📅 Fecha"] = datos.fecha
-        
-        if datos.observaciones:
-            fields["📝 Observaciones"] = datos.observaciones
         
         return fields
 
